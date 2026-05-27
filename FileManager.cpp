@@ -1,6 +1,4 @@
 #include "FileManager.h"
-#include <filesystem>
-#include <algorithm>
 
 void FileManager::load(const std::string& directory, int start_index, int end_index) 
 {
