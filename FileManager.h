@@ -3,6 +3,9 @@
 #include <vector>
 #include <filesystem>
 #include <algorithm>
+#include <QDir>
+#include <QApplication>
+
 
 struct FileEntry 
 {
@@ -13,8 +16,10 @@ struct FileEntry
 
 class FileManager 
 {
+    std::string path;
     public:
         std::vector<FileEntry> files;
         void load(const std::string& directory, int start_index, int end_index);
         void sort() {std::sort(files.begin(), files.end(), [](const FileEntry& a, const FileEntry& b) {return a.val < b.val;});};
+        std::string get_path();
 };
