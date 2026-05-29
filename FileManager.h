@@ -3,8 +3,8 @@
 #include <vector>
 #include <filesystem>
 #include <algorithm>
-#include <QDir>
 #include <QApplication>
+#include <QDir>
 
 
 struct FileEntry 

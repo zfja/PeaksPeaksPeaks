@@ -1,5 +1,6 @@
 #include "SpectrumLoader.h"
 
+
 void SpectrumLoader::load(const std::string &file)
 {
     data.clear();
