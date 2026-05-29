@@ -1,6 +1,4 @@
-#ifndef PEAKSPEAKSPEAKS_H
-#define PEAKSPEAKSPEAKS_H
-
+#pragma once
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -19,5 +17,7 @@ public:
 
 private:
     Ui::PeaksPeaksPeaks *ui;
+    QColor chart_color1 = QColor("#28a5e8");
+    QString x_title = "wavelength [nm]";
+    QString y_title = "intensity";
 };
-#endif // PEAKSPEAKSPEAKS_H
