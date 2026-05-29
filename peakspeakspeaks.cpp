@@ -14,6 +14,7 @@
 #include <QColorDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include "MathEngine.h"
 
 
 PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent) : QMainWindow(parent), ui(new Ui::PeaksPeaksPeaks)
@@ -37,11 +38,9 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent) : QMainWindow(parent), ui(new 
 
         QVBoxLayout* layout = new QVBoxLayout(&settingsDialog);
 
-        // --- SEKCJA KOLORU ---
-        QPushButton* chose_color = new QPushButton("Change marker 1 colour", &settingsDialog);
-        layout->addWidget(chose_color);
-
-        connect(chose_color, &QPushButton::clicked, this, [&]() 
+        QPushButton* chose_color1 = new QPushButton("Change marker 1 colour", &settingsDialog);
+        layout->addWidget(chose_color1);
+        connect(chose_color1, &QPushButton::clicked, this, [&]() 
         {
             QColor new_color = QColorDialog::getColor(chart_color1, &settingsDialog, "Choose colour");
             
@@ -59,10 +58,34 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent) : QMainWindow(parent), ui(new 
                 }
             }
         });
+
+        QPushButton* chose_color2 = new QPushButton("Change marker 2 colour", &settingsDialog);
+        layout->addWidget(chose_color2);
+        connect(chose_color2, &QPushButton::clicked, this, [&]() 
+        {
+            QColor new_color = QColorDialog::getColor(chart_color2, &settingsDialog, "Choose colour");
+            
+            if (new_color.isValid()) {
+                chart_color2 = new_color; 
+
+                // ZMIANA: Upewniamy się, że mamy na wykresie więcej niż 1 linię (czyli surową + wygładzoną)
+                if (ui->graphView->chart() && ui->graphView->chart()->series().size() > 1) {
+                    
+                    // ZMIANA: Zamiast first(), bierzemy last() - czyli drugą, wygładzoną linię
+                    QLineSeries* currentSeries = qobject_cast<QLineSeries*>(ui->graphView->chart()->series().last());
+                    
+                    if (currentSeries) 
+                    {
+                        QPen currentPen = currentSeries->pen();
+                        currentPen.setColor(chart_color2);
+                        currentSeries->setPen(currentPen);
+                    }
+                }
+            }
+        });
         
         layout->addSpacing(10);
         
-        // --- SEKCJA OPISÓW OSI ---
         QLabel* label_x = new QLabel("X-axis Title:", &settingsDialog);
         layout->addWidget(label_x);
         QLineEdit* input_x = new QLineEdit(&settingsDialog);
@@ -77,7 +100,6 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent) : QMainWindow(parent), ui(new 
 
         layout->addSpacing(15);
 
-        // --- PRZYCISK ZAPISZ ---
         QPushButton* save_button = new QPushButton("Save Changes", &settingsDialog);
         save_button->setStyleSheet("font-weight: bold;"); 
         layout->addWidget(save_button);
@@ -147,6 +169,7 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent) : QMainWindow(parent), ui(new 
                 QPen pen(chart_color1); 
                 pen.setWidth(2);          
                 series->setPen(pen);
+                series->setName("raw data");
 
                 for (const auto& point : loader.data)
                     series->append(point.first, point.second);
@@ -154,29 +177,51 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent) : QMainWindow(parent), ui(new 
                 QChart* chart = new QChart();
                 chart->addSeries(series);
 
-                chart->legend()->hide();
-
                 chart->setBackgroundBrush(Qt::white);
                 chart->setBackgroundRoundness(0);
                 chart->setMargins(QMargins(0, 0, 0, 0));
-
 
                 QValueAxis* axisX = new QValueAxis();
                 axisX->setTitleText(x_title); 
                 axisX->setTickCount(10);              
                 axisX->setGridLineVisible(false);                  
-                // axisX->setGridLineColor(QColor("#dcdde1"));       
                 chart->addAxis(axisX, Qt::AlignBottom);
                 series->attachAxis(axisX); 
-
 
                 QValueAxis* axisY = new QValueAxis();
                 axisY->setTitleText(y_title); 
                 axisY->setTickCount(8);
                 axisY->setGridLineVisible(false);
-                // axisY->setGridLineColor(QColor("#dcdde1"));
                 chart->addAxis(axisY, Qt::AlignLeft);
                 series->attachAxis(axisY);
+
+                MathEngine math;
+                auto smoothed_data = math.smooth(loader.data);
+
+                QLineSeries* smooth_series = new QLineSeries();
+                smooth_series->setName("smooth data"); 
+                smooth_series->setPen(QPen(chart_color2, 2));
+                
+                for (const auto& point : smoothed_data)
+                    smooth_series->append(point.first, point.second);
+                
+                chart->addSeries(smooth_series);
+                smooth_series->attachAxis(axisX);
+                smooth_series->attachAxis(axisY);
+
+                chart->legend()->setVisible(true);
+                chart->legend()->detachFromChart();
+                chart->legend()->setBackgroundVisible(true);
+                chart->legend()->setLabelColor(QColor("#2b2b2b"));
+
+
+                QFont legend_font = chart->legend()->font();
+                legend_font.setPixelSize(12);
+                chart->legend()->setFont(legend_font);
+
+                chart->legend()->setMinimumSize(120, 70);
+                chart->legend()->resize(120, 60); 
+                chart->legend()->setPos(440, 20);
 
                 ui->graphView->setChart(chart);
                 ui->graphView->setRenderHint(QPainter::Antialiasing);

@@ -85,3 +85,6 @@ CMakeLists.txt.user*
 /build*/
 /.qtcreator/
 build/
+CMakeCache.txt
+CMakeFiles/
+.DS_Store
