@@ -21,6 +21,14 @@
 #include <QFont>
 #include <QPen>
 #include <QMargins>
+#include <QScatterSeries>
+#include <QMouseEvent>
+#include <QEvent>
+#include <cmath>
+#include <QLegendMarker>
+#include <QGraphicsEllipseItem>
+
+
 
 PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
     : QMainWindow(parent),
@@ -37,15 +45,17 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         #graphView { background-color: #ffffff; border: 2px solid #555555; }
     )");
 
-    ui->graphView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    ui->graphView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    ui->graphView->setFrameShape(QFrame::NoFrame);
-    ui->listWidget->installEventFilter(this);
-    ui->graphView->setFocusPolicy(Qt::NoFocus);
     ui->listWidget->setFocusPolicy(Qt::StrongFocus);
     ui->listWidget->installEventFilter(this);
 
-
+    ui->graphView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->graphView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->graphView->setFrameShape(QFrame::NoFrame);
+    ui->graphView->setFocusPolicy(Qt::NoFocus);
+    ui->graphView->setMouseTracking(true);
+    ui->graphView->viewport()->setMouseTracking(true);
+    ui->graphView->installEventFilter(this);
+    ui->graphView->viewport()->installEventFilter(this);
 
     FileManager manager;
     std::string path = manager.get_path();
@@ -234,6 +244,9 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
             smooth_series->attachAxis(axisX);
             smooth_series->attachAxis(axisY);
 
+            fitSeries = smooth_series;
+            currentChart = chart;
+
             chart->legend()->setVisible(true);
             chart->legend()->detachFromChart();
             chart->legend()->setBackgroundVisible(true);
@@ -249,6 +262,21 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
 
             ui->graphView->setChart(chart);
             ui->graphView->setRenderHint(QPainter::Antialiasing);
+
+            if (markerItem)
+            {
+                delete markerItem;
+                markerItem = nullptr;
+            }
+
+            markerItem = new QGraphicsEllipseItem();
+            markerItem->setRect(-5, -5, 7, 7);
+            markerItem->setBrush(Qt::black);
+            markerItem->setPen(QPen(Qt::black));
+            markerItem->setZValue(1000);
+            markerItem->setVisible(false);
+
+            chart->scene()->addItem(markerItem);
         }
         else
         {
@@ -266,71 +294,81 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
     item->setForeground(isbroken ? QColor("#b61818") : Qt::white);
 }
 
-void PeaksPeaksPeaks::keyPressEvent(QKeyEvent *event)
-{
-    if (!ui->listWidget || ui->listWidget->count() == 0)
-    {
-        QMainWindow::keyPressEvent(event);
-        return;
-    }
-
-    int currentRow = ui->listWidget->currentRow();
-
-    if (event->key() == Qt::Key_Down)
-    {
-        int nextRow = currentRow + 1;
-        if (nextRow < ui->listWidget->count())
-        {
-            ui->listWidget->setCurrentRow(nextRow);
-            loadSelectedItem(ui->listWidget->item(nextRow));
-        }
-        event->accept();
-        return;
-    }
-
-    if (event->key() == Qt::Key_Up)
-    {
-        int prevRow = currentRow - 1;
-        if (prevRow >= 0)
-        {
-            ui->listWidget->setCurrentRow(prevRow);
-            loadSelectedItem(ui->listWidget->item(prevRow));
-        }
-        event->accept();
-        return;
-    }
-
-    QMainWindow::keyPressEvent(event);
-}
-
 PeaksPeaksPeaks::~PeaksPeaksPeaks()
 {
     delete ui;
 }
+
+void PeaksPeaksPeaks::showMarkerAtX(double x)
+{
+    if (!currentChart || !fitSeries || !markerItem)
+        return;
+
+    const auto points = fitSeries->points();
+    if (points.isEmpty())
+        return;
+
+    QPointF bestPoint = points.first();
+    double bestDist = std::abs(points.first().x() - x);
+
+    for (const QPointF& p : points)
+    {
+        double dist = std::abs(p.x() - x);
+        if (dist < bestDist)
+        {
+            bestDist = dist;
+            bestPoint = p;
+        }
+    }
+
+    QPointF scenePos = currentChart->mapToPosition(bestPoint, fitSeries);
+    markerItem->setPos(scenePos);
+    markerItem->setVisible(true);
+}
+
 
 bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == ui->listWidget && event->type() == QEvent::KeyPress)
     {
         auto* keyEvent = static_cast<QKeyEvent*>(event);
+        int currentRow = ui->listWidget->currentRow();
 
-        if (keyEvent->key() == Qt::Key_Up || keyEvent->key() == Qt::Key_Down)
+        if (keyEvent->key() == Qt::Key_Down)
         {
-            int row = ui->listWidget->currentRow();
-
-            if (keyEvent->key() == Qt::Key_Up)
-                row--;
-            else
-                row++;
-
-            if (row >= 0 && row < ui->listWidget->count())
+            int nextRow = currentRow + 1;
+            if (nextRow < ui->listWidget->count())
             {
-                ui->listWidget->setCurrentRow(row);
-                loadSelectedItem(ui->listWidget->item(row));
+                ui->listWidget->setCurrentRow(nextRow);
+                loadSelectedItem(ui->listWidget->item(nextRow));
             }
-
-            return true; // blokuje domyślne zachowanie
+            return true;
         }
+
+        if (keyEvent->key() == Qt::Key_Up)
+        {
+            int prevRow = currentRow - 1;
+            if (prevRow >= 0)
+            {
+                ui->listWidget->setCurrentRow(prevRow);
+                loadSelectedItem(ui->listWidget->item(prevRow));
+            }
+            return true;
+        }
+    }
+
+    if (obj == ui->graphView->viewport() && event->type() == QEvent::MouseMove)
+    {
+        if (!currentChart || !fitSeries || !markerItem)
+            return false;
+
+        auto* mouseEvent = static_cast<QMouseEvent*>(event);
+
+        QPointF scenePos = ui->graphView->mapToScene(mouseEvent->pos());
+        QPointF valuePos = currentChart->mapToValue(scenePos, fitSeries);
+
+        showMarkerAtX(valuePos.x());
+        return true;
     }
 
     return QMainWindow::eventFilter(obj, event);

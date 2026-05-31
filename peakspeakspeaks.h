@@ -5,6 +5,10 @@
 #include <QListWidgetItem>
 #include <QKeyEvent>
 #include <QEvent>
+#include <QChart>
+#include <QLineSeries>
+#include <QScatterSeries>
+#include <QValueAxis>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -21,8 +25,8 @@ public:
     ~PeaksPeaksPeaks() override;
 
 protected:
-    void keyPressEvent(QKeyEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
+
 private:
     Ui::PeaksPeaksPeaks *ui;
 
@@ -32,5 +36,10 @@ private:
     QString y_title = "intensity";
     QString basePath;
 
+    QLineSeries* fitSeries = nullptr;
+    QChart* currentChart = nullptr;
+    QGraphicsEllipseItem* markerItem = nullptr;
+
     void loadSelectedItem(QListWidgetItem* item);
+    void showMarkerAtX(double x);
 };
