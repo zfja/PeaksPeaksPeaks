@@ -27,6 +27,10 @@
 #include <cmath>
 #include <QLegendMarker>
 #include <QGraphicsEllipseItem>
+#include <map>
+#include <string>
+#include <fstream>
+#include <sstream>
 
 
 
@@ -263,20 +267,43 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
             ui->graphView->setChart(chart);
             ui->graphView->setRenderHint(QPainter::Antialiasing);
 
-            if (markerItem)
-            {
-                delete markerItem;
-                markerItem = nullptr;
-            }
+            if (markerItem) { delete markerItem; markerItem = nullptr; }
+            if (markerItem2) { delete markerItem2; markerItem2 = nullptr; }
+
+            if (p1_lineLeft) { delete p1_lineLeft; p1_lineLeft = nullptr; }
+            if (p1_lineRight) { delete p1_lineRight; p1_lineRight = nullptr; }
+            if (p2_lineLeft) { delete p2_lineLeft; p2_lineLeft = nullptr; }
+            if (p2_lineRight) { delete p2_lineRight; p2_lineRight = nullptr; }
+
+            selectionState = 1;
+            p1_deltaX = 0.0;
+            p2_deltaX = 0.0;
 
             markerItem = new QGraphicsEllipseItem();
-            markerItem->setRect(-5, -5, 7, 7);
+            markerItem->setRect(-4, -4, 7, 7);
             markerItem->setBrush(Qt::black);
             markerItem->setPen(QPen(Qt::black));
             markerItem->setZValue(1000);
             markerItem->setVisible(false);
-
             chart->scene()->addItem(markerItem);
+
+            markerItem2 = new QGraphicsRectItem();
+            markerItem2->setRect(-4, -4, 7, 7);
+            markerItem2->setBrush(Qt::black);
+            markerItem2->setPen(QPen(Qt::black));
+            markerItem2->setZValue(1000);
+            markerItem2->setVisible(false);
+            chart->scene()->addItem(markerItem2);
+
+            QPen linePen(Qt::darkGray);
+            linePen.setStyle(Qt::DashLine); // Przerywana linia
+            linePen.setWidth(2);
+
+            p1_lineLeft = new QGraphicsLineItem(); p1_lineLeft->setPen(linePen); p1_lineLeft->setZValue(999); p1_lineLeft->setVisible(false); chart->scene()->addItem(p1_lineLeft);
+            p1_lineRight = new QGraphicsLineItem(); p1_lineRight->setPen(linePen); p1_lineRight->setZValue(999); p1_lineRight->setVisible(false); chart->scene()->addItem(p1_lineRight);
+            
+            p2_lineLeft = new QGraphicsLineItem(); p2_lineLeft->setPen(linePen); p2_lineLeft->setZValue(999); p2_lineLeft->setVisible(false); chart->scene()->addItem(p2_lineLeft);
+            p2_lineRight = new QGraphicsLineItem(); p2_lineRight->setPen(linePen); p2_lineRight->setZValue(999); p2_lineRight->setVisible(false); chart->scene()->addItem(p2_lineRight);
         }
         else
         {
@@ -296,12 +323,18 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
 
 PeaksPeaksPeaks::~PeaksPeaksPeaks()
 {
+    delete markerItem;
+    delete markerItem2;
     delete ui;
+    delete p1_lineLeft;
+    delete p1_lineRight;
+    delete p2_lineLeft;
+    delete p2_lineRight;
 }
 
 void PeaksPeaksPeaks::showMarkerAtX(double x)
 {
-    if (!currentChart || !fitSeries || !markerItem)
+    if (!currentChart || !fitSeries || !markerItem || !markerItem2)
         return;
 
     const auto points = fitSeries->points();
@@ -322,54 +355,196 @@ void PeaksPeaksPeaks::showMarkerAtX(double x)
     }
 
     QPointF scenePos = currentChart->mapToPosition(bestPoint, fitSeries);
-    markerItem->setPos(scenePos);
-    markerItem->setVisible(true);
+    
+    if (selectionState == 1) {
+        // Kółko jeździ
+        markerItem->setPos(scenePos);
+        markerItem->setVisible(true);
+        markerItem2->setVisible(false);
+    } 
+    else if (selectionState == 2) {
+        // Kółko zamrożone (nie rusza się), Kwadrat jeździ
+        markerItem2->setPos(scenePos);
+        markerItem2->setVisible(true);
+    }
 }
 
 
 bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
 {
-    if (obj == ui->listWidget && event->type() == QEvent::KeyPress)
+    // --- OBSŁUGA KLAWIATURY (GLOBALNA) ---
+    if (event->type() == QEvent::KeyPress)
     {
         auto* keyEvent = static_cast<QKeyEvent*>(event);
-        int currentRow = ui->listWidget->currentRow();
+        int key = keyEvent->key();
 
-        if (keyEvent->key() == Qt::Key_Down)
+        // 1. Nawigacja po liście
+        if (obj == ui->listWidget && (key == Qt::Key_Up || key == Qt::Key_Down))
         {
-            int nextRow = currentRow + 1;
-            if (nextRow < ui->listWidget->count())
-            {
+            int currentRow = ui->listWidget->currentRow();
+            int nextRow = (key == Qt::Key_Down) ? currentRow + 1 : currentRow - 1;
+            
+            if (nextRow >= 0 && nextRow < ui->listWidget->count()) {
                 ui->listWidget->setCurrentRow(nextRow);
                 loadSelectedItem(ui->listWidget->item(nextRow));
             }
             return true;
         }
 
-        if (keyEvent->key() == Qt::Key_Up)
-        {
-            int prevRow = currentRow - 1;
-            if (prevRow >= 0)
-            {
-                ui->listWidget->setCurrentRow(prevRow);
-                loadSelectedItem(ui->listWidget->item(prevRow));
+        // 2. Strzałki (Lewo / Prawo) - regulacja szerokości z klawiatury
+        if (key == Qt::Key_Left || key == Qt::Key_Right) {
+            double change = (key == Qt::Key_Right) ? arrowStep : -arrowStep;
+            if (selectionState == 11) {
+                p1_deltaX = std::max(0.0, p1_deltaX + change);
+                updateWidthLines(1);
+                return true;
+            } else if (selectionState == 22) {
+                p2_deltaX = std::max(0.0, p2_deltaX + change);
+                updateWidthLines(2);
+                return true;
             }
-            return true;
+        }
+
+        // 3. ENTER (Zatwierdzanie szerokości)
+        if (key == Qt::Key_Enter || key == Qt::Key_Return) {
+            if (selectionState == 11) {
+                selectionState = 2; // Zakończ P1 -> Aktywuj Kwadrat
+                return true;
+            } else if (selectionState == 22) {
+                selectionState = 0; // Zakończ P2 -> Koniec wyboru
+                return true;
+            }
+        }
+
+        // 4. ESC (Logika cofania)
+        if (key == Qt::Key_Escape) {
+            if (selectionState == 11) {
+                selectionState = 1; // Znikają linie P1 -> Kółko ruchome
+                p1_lineLeft->setVisible(false); p1_lineRight->setVisible(false);
+                return true;
+            } else if (selectionState == 3) {
+                selectionState = 1; // Z Zamrożonego Kółka -> Kółko ruchome
+                return true;
+            } else if (selectionState == 22) {
+                selectionState = 2; // Znikają linie P2 -> Kwadrat ruchomy
+                p2_lineLeft->setVisible(false); p2_lineRight->setVisible(false);
+                return true;
+            } else if (selectionState == 0) {
+                selectionState = 2; // Z Gotowego (0) -> Kwadrat ruchomy (2)
+                p2_lineLeft->setVisible(false); p2_lineRight->setVisible(false);
+                return true;
+            } else if (selectionState == 2) {
+                selectionState = 3; // Z Aktywnego Kwadratu -> Anulowanie kwadratu
+                if (markerItem2) markerItem2->setVisible(false);
+                return true;
+            }
         }
     }
 
-    if (obj == ui->graphView->viewport() && event->type() == QEvent::MouseMove)
+    // --- OBSŁUGA MYSZY NA WYKRESIE ---
+    if (obj == ui->graphView->viewport())
     {
-        if (!currentChart || !fitSeries || !markerItem)
-            return false;
+        if (event->type() == QEvent::MouseMove)
+        {
+            if (!currentChart || !fitSeries) return false;
 
-        auto* mouseEvent = static_cast<QMouseEvent*>(event);
+            auto* mouseEvent = static_cast<QMouseEvent*>(event);
+            QPointF scenePos = ui->graphView->mapToScene(mouseEvent->pos());
+            QPointF valuePos = currentChart->mapToValue(scenePos, fitSeries);
 
-        QPointF scenePos = ui->graphView->mapToScene(mouseEvent->pos());
-        QPointF valuePos = currentChart->mapToValue(scenePos, fitSeries);
+            // Śledzenie Kółka / Kwadratu
+            if (selectionState == 1 || selectionState == 2) 
+            {
+                showMarkerAtX(valuePos.x());
+            }
+            // Zmiana SZEROKOŚCI ruchem myszki
+            else if (selectionState == 11 || selectionState == 22) 
+            {
+                QGraphicsItem* centerMarker = (selectionState == 11) ? (QGraphicsItem*)markerItem : (QGraphicsItem*)markerItem2;
+                
+                if (centerMarker) {
+                    QPointF centerVal = currentChart->mapToValue(centerMarker->pos(), fitSeries);
+                    // Obliczamy odległość myszki (w osi X) od środkowego znacznika
+                    double delta = std::abs(valuePos.x() - centerVal.x());
 
-        showMarkerAtX(valuePos.x());
-        return true;
+                    if (selectionState == 11) {
+                        p1_deltaX = delta;
+                        updateWidthLines(1);
+                    } else {
+                        p2_deltaX = delta;
+                        updateWidthLines(2);
+                    }
+                }
+            }
+            return true;
+        }
+
+        if (event->type() == QEvent::MouseButtonPress)
+        {
+            auto* mouseEvent = static_cast<QMouseEvent*>(event);
+            if (mouseEvent->button() == Qt::LeftButton)
+            {
+                if (selectionState == 1) {
+                    selectionState = 11; // Zamroź środek P1, aktywuj szerokość
+                    p1_deltaX = 0.0;
+                    p1_lineLeft->setVisible(true); p1_lineRight->setVisible(true);
+                    updateWidthLines(1);
+                    return true;
+                }
+                else if (selectionState == 11) {
+                    selectionState = 2;  // Zamroź szerokość P1, przejdź do środka P2 (Zamiast Enter)
+                    return true;
+                }
+                else if (selectionState == 2) {
+                    selectionState = 22; // Zamroź środek P2, aktywuj szerokość
+                    p2_deltaX = 0.0;
+                    p2_lineLeft->setVisible(true); p2_lineRight->setVisible(true);
+                    updateWidthLines(2);
+                    return true;
+                }
+                else if (selectionState == 22) {
+                    selectionState = 0;  // Zamroź szerokość P2, zakończ (Zamiast Enter)
+                    return true;
+                }
+                else if (selectionState == 0 || selectionState == 3) {
+                    // Start od nowa, jeśli klikniesz po wszystkim
+                    selectionState = 1;
+                    return true;
+                }
+            }
+        }
     }
 
     return QMainWindow::eventFilter(obj, event);
+}
+
+void PeaksPeaksPeaks::updateWidthLines(int peakNum)
+{
+    if (!currentChart || !fitSeries) return;
+
+    QGraphicsItem* centerMarker = (peakNum == 1) ? (QGraphicsItem*)markerItem : (QGraphicsItem*)markerItem2;
+    if (!centerMarker || !centerMarker->isVisible()) return;
+
+    // Pobieramy wartość X środka piku
+    QPointF centerVal = currentChart->mapToValue(centerMarker->pos(), fitSeries);
+    double delta = (peakNum == 1) ? p1_deltaX : p2_deltaX;
+
+    // Wyznaczamy pozycje X dla lewej i prawej linii w jednostkach wykresu
+    QPointF leftVal(centerVal.x() - delta, 0);
+    QPointF rightVal(centerVal.x() + delta, 0);
+
+    // Mapujemy z powrotem na pozycję pikselową sceny
+    double sceneLeftX = currentChart->mapToPosition(leftVal, fitSeries).x();
+    double sceneRightX = currentChart->mapToPosition(rightVal, fitSeries).x();
+
+    // Pobieramy granice rysowania (żeby linie były na całą wysokość osi Y)
+    QRectF plotArea = currentChart->plotArea();
+
+    if (peakNum == 1) {
+        p1_lineLeft->setLine(sceneLeftX, plotArea.top(), sceneLeftX, plotArea.bottom());
+        p1_lineRight->setLine(sceneRightX, plotArea.top(), sceneRightX, plotArea.bottom());
+    } else {
+        p2_lineLeft->setLine(sceneLeftX, plotArea.top(), sceneLeftX, plotArea.bottom());
+        p2_lineRight->setLine(sceneRightX, plotArea.top(), sceneRightX, plotArea.bottom());
+    }
 }
