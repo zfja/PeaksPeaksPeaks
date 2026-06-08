@@ -1,8 +1,19 @@
 #include "MathEngine.h"
 
-
+/**
+ * @brief Default constructor for MathEngine.
+ */
 MathEngine::MathEngine() {}
 
+/**
+ * @brief Applies a Savitzky-Golay smoothing filter to a set of data points.
+ * * This method smooths the input data to reduce noise using a fixed window length 
+ * of 51 points. It calculates the smoothed values using polynomial smoothing weights 
+ * and splits the computational workload across two asynchronous threads (std::async) 
+ * to speed up the process.
+ * * @param input_data A constant reference to a vector of std::pair<double, double> representing the raw (X, Y) data points.
+ * @return std::vector<std::pair<double, double>> A new vector containing the smoothed data points.
+ */
 std::vector<std::pair<double, double>> MathEngine::smooth(const std::vector<std::pair<double, double>>& input_data) 
 {
     int window_length = 51;
@@ -10,7 +21,8 @@ std::vector<std::pair<double, double>> MathEngine::smooth(const std::vector<std:
     int n = input_data.size();
     std::vector<std::pair<double, double>> result = input_data;
     
-    if (n < window_length) {return result;} //aby się nie wykrzaczyło
+    if (n < window_length) 
+        return result;
 
     double norm = (2.0 * m - 1.0) * (2.0 * m + 1.0) * (2.0 * m + 3.0);
     std::vector<double> weights(window_length);
