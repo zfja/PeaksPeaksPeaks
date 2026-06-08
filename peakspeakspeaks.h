@@ -9,6 +9,18 @@
 #include <QLineSeries>
 #include <QScatterSeries>
 #include <QValueAxis>
+#include <map>
+#include <string>
+#include <fstream>
+#include <sstream>
+
+struct PeakMeasurement {
+    double p1_x = 0.0;
+    double p1_width = 0.0;
+    double p2_x = 0.0;
+    double p2_width = 0.0;
+    int final_state = 0;
+};
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -30,6 +42,11 @@ protected:
 private:
     Ui::PeaksPeaksPeaks *ui;
 
+    double p1_deltaX = 0.0; 
+    double p2_deltaX = 0.0;
+    double arrowStep = 0.7; 
+    int selectionState = 1;
+
     QColor chart_color1 = QColor("#28a5e8");
     QColor chart_color2 = QColor("#e82862");
     QString x_title = "wavelength [nm]";
@@ -40,19 +57,23 @@ private:
     QChart* currentChart = nullptr;
     QGraphicsEllipseItem* markerItem = nullptr;
     QGraphicsRectItem* markerItem2 = nullptr; 
-    int selectionState = 1;
 
     QGraphicsLineItem* p1_lineLeft = nullptr;
     QGraphicsLineItem* p1_lineRight = nullptr;
     QGraphicsLineItem* p2_lineLeft = nullptr;
     QGraphicsLineItem* p2_lineRight = nullptr;
 
-    double p1_deltaX = 0.0; // Aktualna odległość kresek od środka (w jendostkach osi X)
-    double p2_deltaX = 0.0;
-    double arrowStep = 0.5; // Krok poszerzania strzałkami (możesz zmienić np. na 0.1)
+    std::string currentLoadedFile = "";
+    std::map<std::string, PeakMeasurement> measurements; 
+    QString csvFilePath;
 
     void updateWidthLines(int peakNum);
-
     void loadSelectedItem(QListWidgetItem* item);
     void showMarkerAtX(double x);
+    void loadCSV();
+    void saveCSV(); 
+    void saveCurrentMeasurement(); 
+    void restoreMeasurement(const std::string& fileName); 
+    void setMarkerToX(QGraphicsItem* marker, double x); 
+    void updateInfoPanel();
 };
