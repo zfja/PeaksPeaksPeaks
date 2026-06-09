@@ -95,3 +95,5 @@ docs/
 
 # Editor config
 .vscode/
+*.dmg
+.dmg
