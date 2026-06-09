@@ -29,6 +29,13 @@ SOURCE_BROWSER         = YES
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
 
+# Nicer HTML: side navigation tree and search box
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+SEARCHENGINE           = YES
+
 # Diagrams need Graphviz 'dot'. Set HAVE_DOT = YES after `brew install graphviz`.
 HAVE_DOT               = NO
 CALL_GRAPH             = NO
