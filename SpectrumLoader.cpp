@@ -1,4 +1,5 @@
 #include "SpectrumLoader.h"
+#include <algorithm>
 
 void SpectrumLoader::load(const std::string &file)
 {

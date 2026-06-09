@@ -25,6 +25,7 @@
 #include <QMouseEvent>
 #include <QEvent>
 #include <cmath>
+#include <algorithm>
 #include <QLegendMarker>
 #include <QGraphicsEllipseItem>
 
