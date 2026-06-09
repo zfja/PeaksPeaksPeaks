@@ -7,46 +7,46 @@
 #include <QDir>
 
 /**
- * @brief Structure representing a single file entry.
- * * Stores the actual filename, a formatted name for UI display, 
- * and a parsed numeric value which can be used for sorting.
+ * @brief One spectrum file discovered in the data directory.
  */
 struct FileEntry 
 {
-    std::string file_name;    ///< The actual name of the file on disk.
-    std::string display_name; ///< The formatted name intended for user interface display.
-    double val;               ///< A numeric value associated with the file, used for sorting.
+    std::string file_name;    ///< Filename on disk (e.g. @c spectrum_12345.txt).
+    std::string display_name; ///< Substring shown in the file list.
+    double val;               ///< Numeric value parsed from @c display_name; used for sorting.
 };
 
 /**
- * @brief Class responsible for managing file loading, sorting, and path resolution.
- * * The FileManager handles scanning a specific directory, extracting information 
- * from file names to populate FileEntry structures, and providing sorting capabilities.
+ * @brief Scans a directory for @c .txt spectra and sorts them by parsed numeric label.
  */
 class FileManager 
 {
-    std::string path; ///< Internal storage for the base directory path.
+    std::string path;
     public:
-        std::vector<FileEntry> files; ///< A collection of loaded file entries.
+        std::vector<FileEntry> files; ///< Entries from the last @ref load call.
 
         /**
-         * @brief Loads files from a specified directory and populates the files vector.
-         * * Parses filenames to extract specific substrings (based on start_index and end_index)
-         * to evaluate the display_name and val members of each FileEntry.
-         * * @param directory The path to the directory containing the files to load.
-         * @param start_index The starting index for substring extraction from the filename.
-         * @param end_index The ending index (or offset) for substring extraction.
+         * @brief Loads all @c .txt files from @p directory and sorts by @c val descending.
+         *
+         * For each filename, a substring is taken using indices counted from the end
+         * of the name: start at @c length + start_index, length @c end_index - start_index + 1.
+         * That substring becomes @c display_name; if it parses as a number, it becomes @c val.
+         *
+         * @param directory     Path to scan.
+         * @param start_index   Start offset from the end of the filename (typically negative).
+         * @param end_index     End offset from the end of the filename (typically negative).
          */
         void load(const std::string& directory, int start_index, int end_index);
 
-        /**
-         * @brief Sorts the loaded files in descending order based on their 'val' member.
-         */
+        /** @brief Sorts @c files by @c val in descending order. */
         void sort() {std::sort(files.begin(), files.end(), [](const FileEntry& a, const FileEntry& b) {return a.val > b.val;});};
 
         /**
-         * @brief Retrieves the target directory path for the data files.
-         * * @return std::string The resolved directory path.
+         * @brief Returns the directory that holds the spectra and @c data.csv.
+         *
+         * Normally this is the executable's directory. On macOS the binary sits inside
+         * the app bundle (@c …/Contents/MacOS), so the path is moved up four levels to
+         * reach the directory that contains the @c .app.
          */
         std::string get_path();
 };

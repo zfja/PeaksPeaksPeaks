@@ -28,13 +28,6 @@
 #include <QLegendMarker>
 #include <QGraphicsEllipseItem>
 
-/**
- * @brief Constructs the PeaksPeaksPeaks main window.
- * * Initializes the user interface, sets up styling, configures event filters 
- * for the list and graph views, loads files from the FileManager, and populates 
- * the file list. It also sets up the settings dialog for chart customization.
- * * @param parent Pointer to the parent widget (default is nullptr).
- */
 PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
     : QMainWindow(parent),
       ui(new Ui::PeaksPeaksPeaks)
@@ -189,13 +182,6 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
     }
 }
 
-/**
- * @brief Loads and displays data for the selected item in the list widget.
- * * Saves the current measurement state before loading the new file.
- * Reads spectrum data, creates raw and smoothed data series, updates the chart,
- * and initializes interactive markers and measurement lines.
- * * @param item Pointer to the selected QListWidgetItem containing file data.
- */
 void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
 {
     if (!item)
@@ -359,10 +345,6 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
     item->setForeground(isbroken ? QColor("#b61818") : Qt::white);
 }
 
-/**
- * @brief Destructor for PeaksPeaksPeaks.
- * * Cleans up dynamically allocated memory for UI, markers, and measurement lines.
- */
 PeaksPeaksPeaks::~PeaksPeaksPeaks()
 {
     delete markerItem;
@@ -374,12 +356,6 @@ PeaksPeaksPeaks::~PeaksPeaksPeaks()
     delete p2_lineRight;
 }
 
-/**
- * @brief Snaps a marker to the nearest data point based on the provided X value.
- * * Depending on the current selection state, it positions either marker 1 or 
- * marker 2 on the graph corresponding to the closest real point in the smoothed series.
- * * @param x The target X coordinate to find the closest point for.
- */
 void PeaksPeaksPeaks::showMarkerAtX(double x)
 {
     if (!currentChart || !fitSeries || !markerItem || !markerItem2)
@@ -418,15 +394,6 @@ void PeaksPeaksPeaks::showMarkerAtX(double x)
     updateInfoPanel();
 }
 
-/**
- * @brief Event filter to capture and handle input events before standard processing.
- * * Handles keyboard events (arrows, Enter, Escape) for navigating items and 
- * manipulating selection states/widths. Also handles mouse movements and clicks 
- * within the graph viewport for interactive peak marking.
- * * @param obj The object receiving the event.
- * @param event The event being intercepted.
- * @return true if the event was handled and should be stopped, false otherwise.
- */
 bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress)
@@ -618,12 +585,6 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
     return QMainWindow::eventFilter(obj, event);
 }
 
-/**
- * @brief Updates the visual representation of the peak width lines.
- * * Adjusts the graphical vertical lines on the chart based on the current 
- * deltaX (width) of the specified peak.
- * * @param peakNum Integer identifying which peak to update (1 or 2).
- */
 void PeaksPeaksPeaks::updateWidthLines(int peakNum)
 {
     if (!currentChart || !fitSeries) 
@@ -658,11 +619,6 @@ void PeaksPeaksPeaks::updateWidthLines(int peakNum)
 
 }
 
-/**
- * @brief Loads saved measurement data from the associated CSV file.
- * * Parses the data.csv file line by line and populates the measurements 
- * map with PeakMeasurement structures.
- */
 void PeaksPeaksPeaks::loadCSV()
 {
     measurements.clear();
@@ -693,11 +649,6 @@ void PeaksPeaksPeaks::loadCSV()
     }
 }
 
-/**
- * @brief Saves the current dictionary of measurements to a CSV file.
- * * Writes all stored PeakMeasurement instances mapped by filename 
- * back to the data.csv file on disk.
- */
 void PeaksPeaksPeaks::saveCSV()
 {
     std::ofstream file(csvFilePath.toStdString());
@@ -707,11 +658,6 @@ void PeaksPeaksPeaks::saveCSV()
         file << pair.first << "," << pair.second.p1_x << "," << pair.second.p1_width << "," << pair.second.p2_x << "," << pair.second.p2_width << "," << pair.second.final_state << "\n";
 }
 
-/**
- * @brief Saves the current active chart measurement to the internal map and CSV.
- * * Retrieves coordinates and width data from the active markers and saves them
- * into the measurements map using the current loaded filename as the key.
- */
 void PeaksPeaksPeaks::saveCurrentMeasurement()
 {
     if ((selectionState == 0 || selectionState == 3) && !currentLoadedFile.empty() && currentChart && fitSeries && markerItem) 
@@ -737,13 +683,6 @@ void PeaksPeaksPeaks::saveCurrentMeasurement()
     }
 }
 
-/**
- * @brief Positions a given marker graphically at a specific value on the X-axis.
- * * Searches for the nearest actual point in the data series to the given X value
- * and snaps the marker to that position.
- * * @param marker Pointer to the QGraphicsItem to be placed.
- * @param x The target X coordinate.
- */
 void PeaksPeaksPeaks::setMarkerToX(QGraphicsItem* marker, double x)
 {
     if (!currentChart || !fitSeries) 
@@ -765,13 +704,6 @@ void PeaksPeaksPeaks::setMarkerToX(QGraphicsItem* marker, double x)
     marker->setVisible(true);
 }
 
-/**
- * @brief Restores saved measurement states and visual components for a file.
- * * Given a filename, this looks up stored properties (positions and widths of peaks),
- * updates internal variables, positions the markers accordingly, and updates 
- * the graphical width lines.
- * * @param fileName The name of the file to load measurement data for.
- */
 void PeaksPeaksPeaks::restoreMeasurement(const std::string& fileName)
 {
     if (measurements.count(fileName)) 
@@ -810,11 +742,6 @@ void PeaksPeaksPeaks::restoreMeasurement(const std::string& fileName)
     updateInfoPanel();
 }
 
-/**
- * @brief Updates the user interface labels with current peak measurements.
- * * Calculates current coordinates and widths for both peaks based on 
- * visual marker positions and delta values, updating the info panel text.
- */
 void PeaksPeaksPeaks::updateInfoPanel()
 {
     double x1 = 0.0, w1 = 0.0;

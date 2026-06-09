@@ -5,20 +5,19 @@
 #include <sstream>
 
 /**
- * @brief Class responsible for loading and parsing spectral data from files.
- * * This class reads coordinate data from a specified file and stores it 
- * in a container for further processing and visualization.
+ * @brief Reads (x, y) spectrum points from a text file.
+ *
+ * Expected format: one pair per line, whitespace-separated; commas are accepted as decimal separators.
  */
 class SpectrumLoader
 {
     public:
-        std::vector<std::pair<double, double>> data; ///< Vector storing the loaded data points as (X, Y) pairs.
+        std::vector<std::pair<double, double>> data; ///< Points loaded by the last @ref load call.
 
         /**
-         * @brief Loads spectral data from a specified file path.
-         * * Opens the given file, parses its content, and populates the data vector 
-         * with the extracted coordinate pairs.
-         * * @param file The path to the file to be loaded.
+         * @brief Parses spectrum data from @p file into @c data.
+         * @param file Path to the spectrum file.
+         * @throws std::runtime_error if the file cannot be opened.
          */
         void load(const std::string &file);
 };

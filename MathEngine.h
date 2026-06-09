@@ -5,24 +5,21 @@
 #include <thread>
 
 /**
- * @brief A class that provides mathematical algorithms for data processing.
- * * The MathEngine class encapsulates mathematical operations used in the application,
- * such as applying smoothing algorithms to spectral data points.
+ * @brief Savitzky–Golay smoothing of spectral (x, y) data.
  */
 class MathEngine 
 {
     public:
-        /**
-         * @brief Default constructor for MathEngine.
-         */
         MathEngine();
 
         /**
-         * @brief Smooths the provided set of data points.
-         * * This function takes raw 2D data points and applies a smoothing algorithm
-         * to reduce noise and provide a cleaner signal/curve.
-         * * @param input_data A vector of pairs representing the raw (X, Y) coordinates.
-         * @return std::vector<std::pair<double, double>> A vector of pairs containing the smoothed (X, Y) coordinates.
+         * @brief Applies Savitzky–Golay smoothing to the y values.
+         *
+         * X coordinates are copied unchanged. If there are fewer than 51 points,
+         * the input is returned as-is.
+         *
+         * @param input_data Raw spectrum as (wavelength, intensity) pairs.
+         * @return Smoothed spectrum with the same x values.
          */
         std::vector<std::pair<double, double>> smooth(const std::vector<std::pair<double, double>>& input_data);
 };

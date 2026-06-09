@@ -1,15 +1,5 @@
 #include "FileManager.h"
 
-/**
- * @brief Loads text files from the specified directory and processes their names.
- * * Iterates through the given directory, filtering for regular files with a `.txt` extension.
- * It extracts a substring from the filename using offsets relative to the filename length,
- * attempts to convert this substring to a double value, and stores the entry. 
- * Finally, it triggers the sorting of the loaded files.
- * * @param directory The path to the directory to scan.
- * @param start_index The starting index offset (typically negative, relative to the filename length).
- * @param end_index The ending index offset (typically negative, relative to the filename length).
- */
 void FileManager::load(const std::string& directory, int start_index, int end_index) 
 {
     files.clear();
@@ -39,13 +29,6 @@ void FileManager::load(const std::string& directory, int start_index, int end_in
     this->sort();
 }
 
-/**
- * @brief Retrieves the application's base execution directory path.
- * * Obtains the binary's directory path using Qt. If the application is running 
- * on macOS within an app bundle structure (path ends with "MacOS"), it navigates 
- * up the directory tree to reach the main deployment root directory.
- * * @return std::string The resolved base directory path as a standard string.
- */
 std::string FileManager::get_path()
 {
     QString app_directory = QApplication::applicationDirPath();
