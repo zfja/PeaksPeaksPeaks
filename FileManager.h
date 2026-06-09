@@ -42,11 +42,12 @@ class FileManager
         void sort() {std::sort(files.begin(), files.end(), [](const FileEntry& a, const FileEntry& b) {return a.val > b.val;});};
 
         /**
-         * @brief Returns the directory that holds the spectra and @c data.csv.
+         * @brief Finds the directory that holds the spectra and @c data.csv.
          *
-         * Normally this is the executable's directory. On macOS the binary sits inside
-         * the app bundle (@c …/Contents/MacOS), so the path is moved up four levels to
-         * reach the directory that contains the @c .app.
+         * Starts at the executable's directory and walks up (skipping CMake build
+         * folders) until it finds a directory containing @c .txt spectra. This works
+         * the same inside a macOS @c .app bundle and in a Windows/Linux build folder,
+         * so no per-OS handling is needed. Falls back to the executable directory.
          */
         std::string get_path();
 };

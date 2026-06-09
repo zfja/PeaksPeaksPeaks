@@ -31,17 +31,35 @@ void FileManager::load(const std::string& directory, int start_index, int end_in
 
 std::string FileManager::get_path()
 {
-    QString app_directory = QApplication::applicationDirPath();
-    
-    if (app_directory.endsWith("MacOS")) 
+    std::filesystem::path start = QApplication::applicationDirPath().toStdString();
+    std::filesystem::path dir = start;
+
+    for (int level = 0; level <= 6; ++level)
     {
-        QDir dir(app_directory);
-        dir.cdUp();
-        dir.cdUp(); 
-        dir.cdUp(); 
-        dir.cdUp(); 
-        app_directory = dir.absolutePath(); 
+        std::error_code ec;
+        bool is_build_dir = std::filesystem::exists(dir / "CMakeCache.txt", ec);
+        bool has_spectrum = false;
+
+        if (!is_build_dir)
+        {
+            for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
+            {
+                if (entry.is_regular_file() && entry.path().extension() == ".txt")
+                {
+                    has_spectrum = true;
+                    break;
+                }
+            }
+        }
+
+        if (has_spectrum)
+            return dir.string();
+
+        std::filesystem::path parent = dir.parent_path();
+        if (parent.empty() || parent == dir)
+            break;
+        dir = parent;
     }
 
-    return app_directory.toStdString();
+    return start.string();
 }
