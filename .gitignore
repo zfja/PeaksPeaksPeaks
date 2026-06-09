@@ -92,3 +92,6 @@ CMakeFiles/
 
 # Doxygen generated output
 docs/
+
+# Editor config
+.vscode/
