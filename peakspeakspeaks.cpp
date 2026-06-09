@@ -57,10 +57,10 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
     FileManager manager;
     std::string path = manager.get_path();
-    basePath = QString::fromStdString(path);
+    base_path = QString::fromStdString(path);
 
-    csvFilePath = basePath + "/data.csv";
-    loadCSV();
+    csv_path = base_path + "/data.csv";
+    load_csv();
 
     manager.load(path, -8, -5);
 
@@ -75,17 +75,17 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
     connect(ui->settingsButton, &QPushButton::clicked, this, [=]()
     {
-        QDialog settingsDialog(this);
-        settingsDialog.setWindowTitle("Chart Settings");
-        settingsDialog.setMinimumWidth(250);
+        QDialog settings(this);
+        settings.setWindowTitle("Chart Settings");
+        settings.setMinimumWidth(250);
 
-        QVBoxLayout* layout = new QVBoxLayout(&settingsDialog);
+        QVBoxLayout* layout = new QVBoxLayout(&settings);
 
-        QPushButton* chose_color1 = new QPushButton("Change marker 1 colour", &settingsDialog);
+        QPushButton* chose_color1 = new QPushButton("Change marker 1 colour", &settings);
         layout->addWidget(chose_color1);
         connect(chose_color1, &QPushButton::clicked, this, [&]()
         {
-            QColor new_color = QColorDialog::getColor(chart_color1, &settingsDialog, "Choose colour");
+            QColor new_color = QColorDialog::getColor(chart_color1, &settings, "Choose colour");
 
             if (new_color.isValid())
             {
@@ -93,22 +93,22 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
                 if (ui->graphView->chart() && !ui->graphView->chart()->series().isEmpty())
                 {
-                    QLineSeries* currentSeries = qobject_cast<QLineSeries*>(ui->graphView->chart()->series().first());
-                    if (currentSeries)
+                    QLineSeries* series = qobject_cast<QLineSeries*>(ui->graphView->chart()->series().first());
+                    if (series)
                     {
-                        QPen currentPen = currentSeries->pen();
-                        currentPen.setColor(chart_color1);
-                        currentSeries->setPen(currentPen);
+                        QPen pen = series->pen();
+                        pen.setColor(chart_color1);
+                        series->setPen(pen);
                     }
                 }
             }
         });
 
-        QPushButton* chose_color2 = new QPushButton("Change marker 2 colour", &settingsDialog);
+        QPushButton* chose_color2 = new QPushButton("Change marker 2 colour", &settings);
         layout->addWidget(chose_color2);
         connect(chose_color2, &QPushButton::clicked, this, [&]()
         {
-            QColor new_color = QColorDialog::getColor(chart_color2, &settingsDialog, "Choose colour");
+            QColor new_color = QColorDialog::getColor(chart_color2, &settings, "Choose colour");
 
             if (new_color.isValid())
             {
@@ -116,13 +116,13 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
                 if (ui->graphView->chart() && ui->graphView->chart()->series().size() > 1)
                 {
-                    QLineSeries* currentSeries = qobject_cast<QLineSeries*>(ui->graphView->chart()->series().last());
+                    QLineSeries* series = qobject_cast<QLineSeries*>(ui->graphView->chart()->series().last());
 
-                    if (currentSeries)
+                    if (series)
                     {
-                        QPen currentPen = currentSeries->pen();
-                        currentPen.setColor(chart_color2);
-                        currentSeries->setPen(currentPen);
+                        QPen pen = series->pen();
+                        pen.setColor(chart_color2);
+                        series->setPen(pen);
                     }
                 }
             }
@@ -130,71 +130,71 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
         layout->addSpacing(10);
 
-        QLabel* label_x = new QLabel("X-axis Title:", &settingsDialog);
+        QLabel* label_x = new QLabel("X-axis Title:", &settings);
         layout->addWidget(label_x);
-        QLineEdit* input_x = new QLineEdit(&settingsDialog);
+        QLineEdit* input_x = new QLineEdit(&settings);
         input_x->setText(x_title);
         layout->addWidget(input_x);
 
-        QLabel* label_y = new QLabel("Y-axis Title:", &settingsDialog);
+        QLabel* label_y = new QLabel("Y-axis Title:", &settings);
         layout->addWidget(label_y);
-        QLineEdit* input_y = new QLineEdit(&settingsDialog);
+        QLineEdit* input_y = new QLineEdit(&settings);
         input_y->setText(y_title);
         layout->addWidget(input_y);
 
         layout->addSpacing(15);
 
-        QPushButton* save_button = new QPushButton("Save Changes", &settingsDialog);
+        QPushButton* save_button = new QPushButton("Save Changes", &settings);
         save_button->setStyleSheet("font-weight: bold;");
         layout->addWidget(save_button);
 
-        connect(save_button, &QPushButton::clicked, &settingsDialog, [&]()
+        connect(save_button, &QPushButton::clicked, &settings, [&]()
         {
             x_title = input_x->text();
             y_title = input_y->text();
 
             if (ui->graphView->chart())
             {
-                QChart* current_chart = ui->graphView->chart();
+                QChart* c = ui->graphView->chart();
 
-                if (!current_chart->axes(Qt::Horizontal).isEmpty())
-                    current_chart->axes(Qt::Horizontal).first()->setTitleText(x_title);
+                if (!c->axes(Qt::Horizontal).isEmpty())
+                    c->axes(Qt::Horizontal).first()->setTitleText(x_title);
 
-                if (!current_chart->axes(Qt::Vertical).isEmpty())
-                    current_chart->axes(Qt::Vertical).first()->setTitleText(y_title);
+                if (!c->axes(Qt::Vertical).isEmpty())
+                    c->axes(Qt::Vertical).first()->setTitleText(y_title);
             }
 
-            settingsDialog.accept();
+            settings.accept();
         });
 
-        settingsDialog.exec();
+        settings.exec();
     });
 
     connect(ui->listWidget, &QListWidget::itemClicked, this, [=](QListWidgetItem* item)
     {
-        loadSelectedItem(item);
+        load_item(item);
     });
 
     if (ui->listWidget->count() > 0)
     {
         ui->listWidget->setCurrentRow(0);
-        loadSelectedItem(ui->listWidget->item(0));
+        load_item(ui->listWidget->item(0));
     }
 }
 
-void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
+void PeaksPeaksPeaks::load_item(QListWidgetItem* item)
 {
     if (!item)
         return;
 
-    saveCurrentMeasurement();
+    save_measurement();
     std::string file_name = item->data(Qt::UserRole).toString().toStdString();
-    std::string full_path = basePath.toStdString() + "/" + file_name;
+    std::string full_path = base_path.toStdString() + "/" + file_name;
 
-    currentLoadedFile = file_name;
+    current_file = file_name;
 
     SpectrumLoader loader;
-    bool isbroken = true;
+    bool is_broken = true;
 
     try
     {
@@ -202,132 +202,132 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
 
         if (!loader.data.empty())
         {
-            isbroken = false;
+            is_broken = false;
 
-            QLineSeries* series = new QLineSeries();
+            QLineSeries* raw = new QLineSeries();
             QPen pen(chart_color1);
             pen.setWidth(2);
-            series->setPen(pen);
-            series->setName("raw data");
+            raw->setPen(pen);
+            raw->setName("raw data");
 
             for (const auto& point : loader.data)
-                series->append(point.first, point.second);
+                raw->append(point.first, point.second);
 
-            QChart* chart = new QChart();
-            chart->addSeries(series);
+            QChart* new_chart = new QChart();
+            new_chart->addSeries(raw);
 
-            chart->setBackgroundBrush(Qt::white);
-            chart->setBackgroundRoundness(0);
-            chart->setMargins(QMargins(0, 0, 0, 0));
+            new_chart->setBackgroundBrush(Qt::white);
+            new_chart->setBackgroundRoundness(0);
+            new_chart->setMargins(QMargins(0, 0, 0, 0));
 
-            QValueAxis* axisX = new QValueAxis();
-            axisX->setTitleText(x_title);
-            axisX->setTickCount(10);
-            axisX->setGridLineVisible(false);
-            chart->addAxis(axisX, Qt::AlignBottom);
-            series->attachAxis(axisX);
+            QValueAxis* axis_x = new QValueAxis();
+            axis_x->setTitleText(x_title);
+            axis_x->setTickCount(10);
+            axis_x->setGridLineVisible(false);
+            new_chart->addAxis(axis_x, Qt::AlignBottom);
+            raw->attachAxis(axis_x);
 
-            QValueAxis* axisY = new QValueAxis();
-            axisY->setTitleText(y_title);
-            axisY->setTickCount(8);
-            axisY->setGridLineVisible(false);
-            chart->addAxis(axisY, Qt::AlignLeft);
-            series->attachAxis(axisY);
+            QValueAxis* axis_y = new QValueAxis();
+            axis_y->setTitleText(y_title);
+            axis_y->setTickCount(8);
+            axis_y->setGridLineVisible(false);
+            new_chart->addAxis(axis_y, Qt::AlignLeft);
+            raw->attachAxis(axis_y);
 
             MathEngine math;
-            auto smoothed_data = math.smooth(loader.data);
+            auto smoothed = math.smooth(loader.data);
 
-            QLineSeries* smooth_series = new QLineSeries();
-            smooth_series->setName("smooth data");
-            smooth_series->setPen(QPen(chart_color2, 2));
+            QLineSeries* smooth = new QLineSeries();
+            smooth->setName("smooth data");
+            smooth->setPen(QPen(chart_color2, 2));
 
-            for (const auto& point : smoothed_data)
-                smooth_series->append(point.first, point.second);
+            for (const auto& point : smoothed)
+                smooth->append(point.first, point.second);
 
-            chart->addSeries(smooth_series);
-            smooth_series->attachAxis(axisX);
-            smooth_series->attachAxis(axisY);
+            new_chart->addSeries(smooth);
+            smooth->attachAxis(axis_x);
+            smooth->attachAxis(axis_y);
 
-            fitSeries = smooth_series;
-            currentChart = chart;
+            smooth_series = smooth;
+            chart = new_chart;
 
-            chart->legend()->setVisible(true);
-            chart->legend()->detachFromChart();
-            chart->legend()->setBackgroundVisible(true);
-            chart->legend()->setLabelColor(QColor("#2b2b2b"));
+            new_chart->legend()->setVisible(true);
+            new_chart->legend()->detachFromChart();
+            new_chart->legend()->setBackgroundVisible(true);
+            new_chart->legend()->setLabelColor(QColor("#2b2b2b"));
 
-            QFont legend_font = chart->legend()->font();
+            QFont legend_font = new_chart->legend()->font();
             legend_font.setPixelSize(12);
-            chart->legend()->setFont(legend_font);
+            new_chart->legend()->setFont(legend_font);
 
-            chart->legend()->setMinimumSize(120, 70);
-            chart->legend()->resize(120, 60);
-            chart->legend()->setPos(440, 20);
+            new_chart->legend()->setMinimumSize(120, 70);
+            new_chart->legend()->resize(120, 60);
+            new_chart->legend()->setPos(440, 20);
 
-            ui->graphView->setChart(chart);
+            ui->graphView->setChart(new_chart);
             ui->graphView->setRenderHint(QPainter::Antialiasing);
 
-            if (markerItem) 
-                delete markerItem; markerItem = nullptr;
-            if (markerItem2)
-                delete markerItem2; markerItem2 = nullptr;
-            if (p1_lineLeft)
-                delete p1_lineLeft; p1_lineLeft = nullptr;
-            if (p1_lineRight)
-                 delete p1_lineRight; p1_lineRight = nullptr;
-            if (p2_lineLeft)
-                delete p2_lineLeft; p2_lineLeft = nullptr;
-            if (p2_lineRight)
-                delete p2_lineRight; p2_lineRight = nullptr;
+            if (marker1) 
+                delete marker1; marker1 = nullptr;
+            if (marker2)
+                delete marker2; marker2 = nullptr;
+            if (p1_left)
+                delete p1_left; p1_left = nullptr;
+            if (p1_right)
+                 delete p1_right; p1_right = nullptr;
+            if (p2_left)
+                delete p2_left; p2_left = nullptr;
+            if (p2_right)
+                delete p2_right; p2_right = nullptr;
 
-            selectionState = 1;
-            p1_deltaX = 0.0;
-            p2_deltaX = 0.0;
+            state = 1;
+            p1_dx = 0.0;
+            p2_dx = 0.0;
 
-            markerItem = new QGraphicsEllipseItem();
-            markerItem->setRect(-4, -4, 7, 7);
-            markerItem->setBrush(Qt::black);
-            markerItem->setPen(QPen(Qt::black));
-            markerItem->setZValue(1000);
-            markerItem->setVisible(false);
-            chart->scene()->addItem(markerItem);
+            marker1 = new QGraphicsEllipseItem();
+            marker1->setRect(-4, -4, 7, 7);
+            marker1->setBrush(Qt::black);
+            marker1->setPen(QPen(Qt::black));
+            marker1->setZValue(1000);
+            marker1->setVisible(false);
+            new_chart->scene()->addItem(marker1);
 
-            markerItem2 = new QGraphicsRectItem();
-            markerItem2->setRect(-4, -4, 7, 7);
-            markerItem2->setBrush(Qt::black);
-            markerItem2->setPen(QPen(Qt::black));
-            markerItem2->setZValue(1000);
-            markerItem2->setVisible(false);
-            chart->scene()->addItem(markerItem2);
+            marker2 = new QGraphicsRectItem();
+            marker2->setRect(-4, -4, 7, 7);
+            marker2->setBrush(Qt::black);
+            marker2->setPen(QPen(Qt::black));
+            marker2->setZValue(1000);
+            marker2->setVisible(false);
+            new_chart->scene()->addItem(marker2);
 
-            QPen linePen(Qt::darkGray);
-            linePen.setStyle(Qt::DashLine);
-            linePen.setWidth(2);
+            QPen line_pen(Qt::darkGray);
+            line_pen.setStyle(Qt::DashLine);
+            line_pen.setWidth(2);
 
-            p1_lineLeft = new QGraphicsLineItem(); 
-            p1_lineLeft->setPen(linePen); p1_lineLeft->setZValue(999); 
-            p1_lineLeft->setVisible(false); 
-            chart->scene()->addItem(p1_lineLeft);
+            p1_left = new QGraphicsLineItem(); 
+            p1_left->setPen(line_pen); p1_left->setZValue(999); 
+            p1_left->setVisible(false); 
+            new_chart->scene()->addItem(p1_left);
 
-            p1_lineRight = new QGraphicsLineItem(); 
-            p1_lineRight->setPen(linePen); 
-            p1_lineRight->setZValue(999); 
-            p1_lineRight->setVisible(false); 
-            chart->scene()->addItem(p1_lineRight);
+            p1_right = new QGraphicsLineItem(); 
+            p1_right->setPen(line_pen); 
+            p1_right->setZValue(999); 
+            p1_right->setVisible(false); 
+            new_chart->scene()->addItem(p1_right);
             
-            p2_lineLeft = new QGraphicsLineItem(); 
-            p2_lineLeft->setPen(linePen); 
-            p2_lineLeft->setZValue(999); 
-            p2_lineLeft->setVisible(false); 
-            chart->scene()->addItem(p2_lineLeft);
+            p2_left = new QGraphicsLineItem(); 
+            p2_left->setPen(line_pen); 
+            p2_left->setZValue(999); 
+            p2_left->setVisible(false); 
+            new_chart->scene()->addItem(p2_left);
 
-            p2_lineRight = new QGraphicsLineItem(); 
-            p2_lineRight->setPen(linePen); 
-            p2_lineRight->setZValue(999); 
-            p2_lineRight->setVisible(false); 
-            chart->scene()->addItem(p2_lineRight);
+            p2_right = new QGraphicsLineItem(); 
+            p2_right->setPen(line_pen); 
+            p2_right->setZValue(999); 
+            p2_right->setVisible(false); 
+            new_chart->scene()->addItem(p2_right);
             
-            restoreMeasurement(currentLoadedFile);
+            restore_measurement(current_file);
         }
         else
         {
@@ -340,140 +340,140 @@ void PeaksPeaksPeaks::loadSelectedItem(QListWidgetItem* item)
     }
 
     QFont font = item->font();
-    font.setBold(isbroken);
+    font.setBold(is_broken);
     item->setFont(font);
-    item->setForeground(isbroken ? QColor("#b61818") : Qt::white);
+    item->setForeground(is_broken ? QColor("#b61818") : Qt::white);
 }
 
 PeaksPeaksPeaks::~PeaksPeaksPeaks()
 {
-    delete markerItem;
-    delete markerItem2;
+    delete marker1;
+    delete marker2;
     delete ui;
-    delete p1_lineLeft;
-    delete p1_lineRight;
-    delete p2_lineLeft;
-    delete p2_lineRight;
+    delete p1_left;
+    delete p1_right;
+    delete p2_left;
+    delete p2_right;
 }
 
-void PeaksPeaksPeaks::showMarkerAtX(double x)
+void PeaksPeaksPeaks::snap_marker(double x)
 {
-    if (!currentChart || !fitSeries || !markerItem || !markerItem2)
+    if (!chart || !smooth_series || !marker1 || !marker2)
         return;
 
-    const auto points = fitSeries->points();
+    const auto points = smooth_series->points();
     if (points.isEmpty())
         return;
 
-    QPointF bestPoint = points.first();
-    double bestDist = std::abs(points.first().x() - x);
+    QPointF best_point = points.first();
+    double best_dist = std::abs(points.first().x() - x);
 
     for (const QPointF& p : points)
     {
         double dist = std::abs(p.x() - x);
-        if (dist < bestDist)
+        if (dist < best_dist)
         {
-            bestDist = dist;
-            bestPoint = p;
+            best_dist = dist;
+            best_point = p;
         }
     }
 
-    QPointF scenePos = currentChart->mapToPosition(bestPoint, fitSeries);
+    QPointF scene_pos = chart->mapToPosition(best_point, smooth_series);
     
-    if (selectionState == 1) 
+    if (state == 1) 
     {
-        markerItem->setPos(scenePos);
-        markerItem->setVisible(true);
-        markerItem2->setVisible(false);
+        marker1->setPos(scene_pos);
+        marker1->setVisible(true);
+        marker2->setVisible(false);
     } 
-    else if (selectionState == 2) 
+    else if (state == 2) 
     {
-        markerItem2->setPos(scenePos);
-        markerItem2->setVisible(true);
+        marker2->setPos(scene_pos);
+        marker2->setVisible(true);
     }
-    updateInfoPanel();
+    update_info();
 }
 
 bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress)
     {
-        auto* keyEvent = static_cast<QKeyEvent*>(event);
-        int key = keyEvent->key();
+        auto* key_event = static_cast<QKeyEvent*>(event);
+        int key = key_event->key();
 
         if (obj == ui->listWidget && (key == Qt::Key_Up || key == Qt::Key_Down))
         {
-            int currentRow = ui->listWidget->currentRow();
-            int nextRow = (key == Qt::Key_Down) ? currentRow + 1 : currentRow - 1;
+            int current_row = ui->listWidget->currentRow();
+            int next_row = (key == Qt::Key_Down) ? current_row + 1 : current_row - 1;
             
-            if (nextRow >= 0 && nextRow < ui->listWidget->count()) 
+            if (next_row >= 0 && next_row < ui->listWidget->count()) 
             {
-                ui->listWidget->setCurrentRow(nextRow);
-                loadSelectedItem(ui->listWidget->item(nextRow));
+                ui->listWidget->setCurrentRow(next_row);
+                load_item(ui->listWidget->item(next_row));
             }
             return true;
         }
 
         if (key == Qt::Key_Left || key == Qt::Key_Right) 
         {
-            double change = (key == Qt::Key_Right) ? arrowStep : -arrowStep;
-            if (selectionState == 11) 
+            double change = (key == Qt::Key_Right) ? arrow_step : -arrow_step;
+            if (state == 11) 
             {
-                p1_deltaX = std::max(0.0, p1_deltaX + change);
-                updateWidthLines(1);
+                p1_dx = std::max(0.0, p1_dx + change);
+                update_width_lines(1);
                 return true;
             } 
-            else if (selectionState == 22) 
+            else if (state == 22) 
             {
-                p2_deltaX = std::max(0.0, p2_deltaX + change);
-                updateWidthLines(2);
+                p2_dx = std::max(0.0, p2_dx + change);
+                update_width_lines(2);
                 return true;
             }
         }
 
         if (key == Qt::Key_Enter || key == Qt::Key_Return) 
         {
-            if (selectionState == 11) 
+            if (state == 11) 
             {
-                selectionState = 2; 
+                state = 2; 
                 return true;
             } 
-            else if (selectionState == 22) 
+            else if (state == 22) 
             {
-                selectionState = 0; 
+                state = 0; 
                 return true;
             }
         }
 
         if (key == Qt::Key_Escape) 
         {
-            if (selectionState == 11) 
+            if (state == 11) 
             {
-                selectionState = 1; 
-                p1_lineLeft->setVisible(false); p1_lineRight->setVisible(false);
+                state = 1; 
+                p1_left->setVisible(false); p1_right->setVisible(false);
                 return true;
             } 
-            else if (selectionState == 3) 
+            else if (state == 3) 
             {
-                selectionState = 1; 
+                state = 1; 
                 return true;
             } 
-            else if (selectionState == 22)
+            else if (state == 22)
             {
-                selectionState = 2; 
-                p2_lineLeft->setVisible(false); p2_lineRight->setVisible(false);
+                state = 2; 
+                p2_left->setVisible(false); p2_right->setVisible(false);
                 return true;
             } 
-            else if (selectionState == 0) 
+            else if (state == 0) 
             {
-                selectionState = 2;
-                p2_lineLeft->setVisible(false); p2_lineRight->setVisible(false);
+                state = 2;
+                p2_left->setVisible(false); p2_right->setVisible(false);
                 return true;
             } 
-            else if (selectionState == 2) 
+            else if (state == 2) 
             {
-                selectionState = 3;
-                if (markerItem2) markerItem2->setVisible(false);
+                state = 3;
+                if (marker2) marker2->setVisible(false);
                 return true;
             }
         }
@@ -481,21 +481,21 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
         if (key == Qt::Key_Escape) 
         {
             
-            if (keyEvent->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)) 
+            if (key_event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)) 
             {
-                if (!currentLoadedFile.empty()) 
+                if (!current_file.empty()) 
                 {
-                    measurements.erase(currentLoadedFile); 
-                    saveCSV(); 
+                    measurements.erase(current_file); 
+                    save_csv(); 
                 }
-                selectionState = 1;
-                p1_deltaX = 0.0; p2_deltaX = 0.0;
-                if (markerItem) markerItem->setVisible(false);
-                if (markerItem2) markerItem2->setVisible(false);
-                if (p1_lineLeft) p1_lineLeft->setVisible(false);
-                if (p1_lineRight) p1_lineRight->setVisible(false);
-                if (p2_lineLeft) p2_lineLeft->setVisible(false);
-                if (p2_lineRight) p2_lineRight->setVisible(false);
+                state = 1;
+                p1_dx = 0.0; p2_dx = 0.0;
+                if (marker1) marker1->setVisible(false);
+                if (marker2) marker2->setVisible(false);
+                if (p1_left) p1_left->setVisible(false);
+                if (p1_right) p1_right->setVisible(false);
+                if (p2_left) p2_left->setVisible(false);
+                if (p2_right) p2_right->setVisible(false);
                 return true;
             }
         }
@@ -505,34 +505,34 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
     {
         if (event->type() == QEvent::MouseMove)
         {
-            if (!currentChart || !fitSeries) 
+            if (!chart || !smooth_series) 
                 return false;
 
-            auto* mouseEvent = static_cast<QMouseEvent*>(event);
-            QPointF scenePos = ui->graphView->mapToScene(mouseEvent->pos());
-            QPointF valuePos = currentChart->mapToValue(scenePos, fitSeries);
+            auto* mouse_event = static_cast<QMouseEvent*>(event);
+            QPointF scene_pos = ui->graphView->mapToScene(mouse_event->pos());
+            QPointF value_pos = chart->mapToValue(scene_pos, smooth_series);
 
-            if (selectionState == 1 || selectionState == 2) 
-                showMarkerAtX(valuePos.x());
+            if (state == 1 || state == 2) 
+                snap_marker(value_pos.x());
 
-            else if (selectionState == 11 || selectionState == 22) 
+            else if (state == 11 || state == 22) 
             {
-                QGraphicsItem* centerMarker = (selectionState == 11) ? (QGraphicsItem*)markerItem : (QGraphicsItem*)markerItem2;
+                QGraphicsItem* center = (state == 11) ? (QGraphicsItem*)marker1 : (QGraphicsItem*)marker2;
                 
-                if (centerMarker) 
+                if (center) 
                 {
-                    QPointF centerVal = currentChart->mapToValue(centerMarker->pos(), fitSeries);
-                    double delta = std::abs(valuePos.x() - centerVal.x());
+                    QPointF center_val = chart->mapToValue(center->pos(), smooth_series);
+                    double delta = std::abs(value_pos.x() - center_val.x());
 
-                    if (selectionState == 11) 
+                    if (state == 11) 
                     {
-                        p1_deltaX = delta;
-                        updateWidthLines(1);
+                        p1_dx = delta;
+                        update_width_lines(1);
                     } 
                     else 
                     {
-                        p2_deltaX = delta;
-                        updateWidthLines(2);
+                        p2_dx = delta;
+                        update_width_lines(2);
                     }
                 }
             }
@@ -541,88 +541,88 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
 
         if (event->type() == QEvent::MouseButtonPress)
         {
-            auto* mouseEvent = static_cast<QMouseEvent*>(event);
-            if (mouseEvent->button() == Qt::LeftButton)
+            auto* mouse_event = static_cast<QMouseEvent*>(event);
+            if (mouse_event->button() == Qt::LeftButton)
             {
-                if (selectionState == 1) 
+                if (state == 1) 
                 {
-                    selectionState = 11; 
-                    p1_deltaX = 0.0;
-                    p1_lineLeft->setVisible(true); p1_lineRight->setVisible(true);
-                    updateWidthLines(1);
-                    updateInfoPanel();
+                    state = 11; 
+                    p1_dx = 0.0;
+                    p1_left->setVisible(true); p1_right->setVisible(true);
+                    update_width_lines(1);
+                    update_info();
                     return true;
                 }
-                else if (selectionState == 11) 
+                else if (state == 11) 
                 {
-                    selectionState = 2; 
+                    state = 2; 
                     return true;
                 }
-                else if (selectionState == 2) 
+                else if (state == 2) 
                 {
-                    selectionState = 22; 
-                    p2_deltaX = 0.0;
-                    p2_lineLeft->setVisible(true); p2_lineRight->setVisible(true);
-                    updateWidthLines(2);
-                    updateInfoPanel();
+                    state = 22; 
+                    p2_dx = 0.0;
+                    p2_left->setVisible(true); p2_right->setVisible(true);
+                    update_width_lines(2);
+                    update_info();
                     return true;
                 }
-                else if (selectionState == 22) 
+                else if (state == 22) 
                 {
-                    selectionState = 0; 
+                    state = 0; 
                     return true;
                 }
-                else if (selectionState == 0 || selectionState == 3) 
+                else if (state == 0 || state == 3) 
                 {
-                    selectionState = 1;
+                    state = 1;
                     return true;
                 }
             }
         }
     }
 
-    updateInfoPanel();
+    update_info();
     return QMainWindow::eventFilter(obj, event);
 }
 
-void PeaksPeaksPeaks::updateWidthLines(int peakNum)
+void PeaksPeaksPeaks::update_width_lines(int peak)
 {
-    if (!currentChart || !fitSeries) 
+    if (!chart || !smooth_series) 
         return;
 
-    QGraphicsItem* centerMarker = (peakNum == 1) ? (QGraphicsItem*)markerItem : (QGraphicsItem*)markerItem2;
-    if (!centerMarker || !centerMarker->isVisible()) 
+    QGraphicsItem* center = (peak == 1) ? (QGraphicsItem*)marker1 : (QGraphicsItem*)marker2;
+    if (!center || !center->isVisible()) 
         return;
 
-    QPointF centerVal = currentChart->mapToValue(centerMarker->pos(), fitSeries);
-    double delta = (peakNum == 1) ? p1_deltaX : p2_deltaX;
+    QPointF center_val = chart->mapToValue(center->pos(), smooth_series);
+    double delta = (peak == 1) ? p1_dx : p2_dx;
 
-    QPointF leftVal(centerVal.x() - delta, 0);
-    QPointF rightVal(centerVal.x() + delta, 0);
+    QPointF left_val(center_val.x() - delta, 0);
+    QPointF right_val(center_val.x() + delta, 0);
 
-    double sceneLeftX = currentChart->mapToPosition(leftVal, fitSeries).x();
-    double sceneRightX = currentChart->mapToPosition(rightVal, fitSeries).x();
+    double left_x = chart->mapToPosition(left_val, smooth_series).x();
+    double right_x = chart->mapToPosition(right_val, smooth_series).x();
 
-    QRectF plotArea = currentChart->plotArea();
+    QRectF area = chart->plotArea();
 
-    if (peakNum == 1) 
+    if (peak == 1) 
     {
-        p1_lineLeft->setLine(sceneLeftX, plotArea.top(), sceneLeftX, plotArea.bottom());
-        p1_lineRight->setLine(sceneRightX, plotArea.top(), sceneRightX, plotArea.bottom());
+        p1_left->setLine(left_x, area.top(), left_x, area.bottom());
+        p1_right->setLine(right_x, area.top(), right_x, area.bottom());
     } 
     else 
     {
-        p2_lineLeft->setLine(sceneLeftX, plotArea.top(), sceneLeftX, plotArea.bottom());
-        p2_lineRight->setLine(sceneRightX, plotArea.top(), sceneRightX, plotArea.bottom());
+        p2_left->setLine(left_x, area.top(), left_x, area.bottom());
+        p2_right->setLine(right_x, area.top(), right_x, area.bottom());
     }
-    updateInfoPanel();
+    update_info();
 
 }
 
-void PeaksPeaksPeaks::loadCSV()
+void PeaksPeaksPeaks::load_csv()
 {
     measurements.clear();
-    std::ifstream file(csvFilePath.toStdString());
+    std::ifstream file(csv_path.toStdString());
     if (!file.is_open()) return;
 
     std::string line;
@@ -640,37 +640,37 @@ void PeaksPeaksPeaks::loadCSV()
             m.p2_width = std::stod(p2w_str);
             
             if (std::getline(ss, state_str, ',')) 
-                m.final_state = std::stoi(state_str);
+                m.last_state = std::stoi(state_str);
             else
-                m.final_state = 0;
+                m.last_state = 0;
             
             measurements[fname] = m;
         }
     }
 }
 
-void PeaksPeaksPeaks::saveCSV()
+void PeaksPeaksPeaks::save_csv()
 {
-    std::ofstream file(csvFilePath.toStdString());
+    std::ofstream file(csv_path.toStdString());
     if (!file.is_open()) return;
 
     for (const auto& pair : measurements) 
-        file << pair.first << "," << pair.second.p1_x << "," << pair.second.p1_width << "," << pair.second.p2_x << "," << pair.second.p2_width << "," << pair.second.final_state << "\n";
+        file << pair.first << "," << pair.second.p1_x << "," << pair.second.p1_width << "," << pair.second.p2_x << "," << pair.second.p2_width << "," << pair.second.last_state << "\n";
 }
 
-void PeaksPeaksPeaks::saveCurrentMeasurement()
+void PeaksPeaksPeaks::save_measurement()
 {
-    if ((selectionState == 0 || selectionState == 3) && !currentLoadedFile.empty() && currentChart && fitSeries && markerItem) 
+    if ((state == 0 || state == 3) && !current_file.empty() && chart && smooth_series && marker1) 
     {
         PeakMeasurement m;
-        m.final_state = selectionState;
-        m.p1_x = currentChart->mapToValue(markerItem->pos(), fitSeries).x();
-        m.p1_width = p1_deltaX;
+        m.last_state = state;
+        m.p1_x = chart->mapToValue(marker1->pos(), smooth_series).x();
+        m.p1_width = p1_dx;
         
-        if (selectionState == 0 && markerItem2) 
+        if (state == 0 && marker2) 
         {
-            m.p2_x = currentChart->mapToValue(markerItem2->pos(), fitSeries).x();
-            m.p2_width = p2_deltaX;
+            m.p2_x = chart->mapToValue(marker2->pos(), smooth_series).x();
+            m.p2_width = p2_dx;
         } 
         else 
         {
@@ -678,94 +678,94 @@ void PeaksPeaksPeaks::saveCurrentMeasurement()
             m.p2_width = 0.0;
         }
         
-        measurements[currentLoadedFile] = m;
-        saveCSV(); 
+        measurements[current_file] = m;
+        save_csv(); 
     }
 }
 
-void PeaksPeaksPeaks::setMarkerToX(QGraphicsItem* marker, double x)
+void PeaksPeaksPeaks::set_marker(QGraphicsItem* marker, double x)
 {
-    if (!currentChart || !fitSeries) 
+    if (!chart || !smooth_series) 
         return;
-    const auto points = fitSeries->points();
+    const auto points = smooth_series->points();
     if (points.isEmpty()) 
         return;
 
-    QPointF bestPoint = points.first();
-    double bestDist = std::abs(points.first().x() - x);
+    QPointF best_point = points.first();
+    double best_dist = std::abs(points.first().x() - x);
 
     for (const QPointF& p : points) 
     {
         double dist = std::abs(p.x() - x);
-        if (dist < bestDist)
-            bestDist = dist; bestPoint = p;
+        if (dist < best_dist)
+            best_dist = dist; best_point = p;
     }
-    marker->setPos(currentChart->mapToPosition(bestPoint, fitSeries));
+    marker->setPos(chart->mapToPosition(best_point, smooth_series));
     marker->setVisible(true);
 }
 
-void PeaksPeaksPeaks::restoreMeasurement(const std::string& fileName)
+void PeaksPeaksPeaks::restore_measurement(const std::string& file_name)
 {
-    if (measurements.count(fileName)) 
+    if (measurements.count(file_name)) 
     {
-        PeakMeasurement m = measurements[fileName];
-        selectionState = m.final_state; 
+        PeakMeasurement m = measurements[file_name];
+        state = m.last_state; 
 
-        p1_deltaX = m.p1_width;
-        setMarkerToX(markerItem, m.p1_x);
-        p1_lineLeft->setVisible(true); 
-        p1_lineRight->setVisible(true);
-        updateWidthLines(1);
+        p1_dx = m.p1_width;
+        set_marker(marker1, m.p1_x);
+        p1_left->setVisible(true); 
+        p1_right->setVisible(true);
+        update_width_lines(1);
         
-        if (selectionState == 0) 
+        if (state == 0) 
         {
-            p2_deltaX = m.p2_width;
-            setMarkerToX(markerItem2, m.p2_x);
-            p2_lineLeft->setVisible(true); 
-            p2_lineRight->setVisible(true);
-            updateWidthLines(2);
+            p2_dx = m.p2_width;
+            set_marker(marker2, m.p2_x);
+            p2_left->setVisible(true); 
+            p2_right->setVisible(true);
+            update_width_lines(2);
         } 
         else 
         {
-            p2_deltaX = 0.0;
-            if(markerItem2) markerItem2->setVisible(false);
-            if(p2_lineLeft) p2_lineLeft->setVisible(false);
-            if(p2_lineRight) p2_lineRight->setVisible(false);
+            p2_dx = 0.0;
+            if(marker2) marker2->setVisible(false);
+            if(p2_left) p2_left->setVisible(false);
+            if(p2_right) p2_right->setVisible(false);
         }
     } 
     else 
     {
-        selectionState = 1; 
-        p1_deltaX = 0.0;
-        p2_deltaX = 0.0;
+        state = 1; 
+        p1_dx = 0.0;
+        p2_dx = 0.0;
     }
-    updateInfoPanel();
+    update_info();
 }
 
-void PeaksPeaksPeaks::updateInfoPanel()
+void PeaksPeaksPeaks::update_info()
 {
     double x1 = 0.0, w1 = 0.0;
     double x2 = 0.0, w2 = 0.0;
 
-    if (selectionState != 1 && currentChart && fitSeries && markerItem) 
+    if (state != 1 && chart && smooth_series && marker1) 
     {
-        x1 = currentChart->mapToValue(markerItem->pos(), fitSeries).x();
-        w1 = p1_deltaX * 2.0;
+        x1 = chart->mapToValue(marker1->pos(), smooth_series).x();
+        w1 = p1_dx * 2.0;
     } 
-    else if (selectionState == 1 && markerItem && markerItem->isVisible()) 
+    else if (state == 1 && marker1 && marker1->isVisible()) 
     {
-        x1 = currentChart->mapToValue(markerItem->pos(), fitSeries).x();
+        x1 = chart->mapToValue(marker1->pos(), smooth_series).x();
         w1 = 0.0;
     }
 
-    if ((selectionState == 0 || selectionState == 22) && currentChart && fitSeries && markerItem2) 
+    if ((state == 0 || state == 22) && chart && smooth_series && marker2) 
     {
-        x2 = currentChart->mapToValue(markerItem2->pos(), fitSeries).x();
-        w2 = p2_deltaX * 2.0;
+        x2 = chart->mapToValue(marker2->pos(), smooth_series).x();
+        w2 = p2_dx * 2.0;
     } 
-    else if (selectionState == 2 && markerItem2 && markerItem2->isVisible()) 
+    else if (state == 2 && marker2 && marker2->isVisible()) 
     {
-        x2 = currentChart->mapToValue(markerItem2->pos(), fitSeries).x();
+        x2 = chart->mapToValue(marker2->pos(), smooth_series).x();
         w2 = 0.0;
     }
 

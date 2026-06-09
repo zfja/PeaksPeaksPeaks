@@ -19,10 +19,10 @@
  */
 struct PeakMeasurement {
     double p1_x = 0.0;      ///< Center x of peak 1 (nm).
-    double p1_width = 0.0;  ///< Half-width Δx of peak 1; full width shown in UI is @c 2 * p1_width.
+    double p1_width = 0.0;  ///< Half-width of peak 1; full width in the UI is 2 * p1_width.
     double p2_x = 0.0;      ///< Center x of peak 2 (nm).
-    double p2_width = 0.0;  ///< Half-width Δx of peak 2.
-    int final_state = 0;    ///< @ref PeaksPeaksPeaks::selectionState when saved (0 = two peaks, 3 = one peak).
+    double p2_width = 0.0;  ///< Half-width of peak 2.
+    int last_state = 0;     ///< Workflow state when saved (0 = two peaks, 3 = one peak).
 };
 
 QT_BEGIN_NAMESPACE
@@ -32,11 +32,10 @@ class PeaksPeaksPeaks;
 QT_END_NAMESPACE
 
 /**
- * @brief Qt main window: load spectra, smooth curves, and measure up to two peaks interactively.
+ * @brief Main window: loads spectra, draws raw and smoothed curves, measures up to two peaks.
  *
- * Raw and smoothed series are drawn on a chart. The user places markers with the mouse
- * and adjusts peak widths with clicks and arrow keys. Measurements persist in @c data.csv
- * next to the application.
+ * The user picks peak centers with the mouse and sets their widths with clicks
+ * or arrow keys. Measurements are kept in data.csv next to the application.
  */
 class PeaksPeaksPeaks : public QMainWindow
 {
@@ -47,65 +46,56 @@ public:
     ~PeaksPeaksPeaks() override;
 
 protected:
-    /**
-     * @brief Handles list navigation and chart interaction (keyboard and mouse).
-     *
-     * List: Up/Down changes the selected spectrum.
-     * Chart: mouse moves markers or width lines depending on @c selectionState;
-     * Left/Right nudges width in states 11 and 22; Enter/Escape advance or cancel steps.
-     */
+    /// Handles list navigation and the mouse/keyboard peak-picking on the chart.
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
     Ui::PeaksPeaksPeaks *ui;
 
-    double p1_deltaX = 0.0;  ///< Half-width Δx for peak 1 while editing.
-    double p2_deltaX = 0.0;  ///< Half-width Δx for peak 2 while editing.
-    double arrowStep = 0.7;  ///< Width change per Left/Right key press (nm).
+    double p1_dx = 0.0;      ///< Half-width of peak 1 while editing.
+    double p2_dx = 0.0;      ///< Half-width of peak 2 while editing.
+    double arrow_step = 0.7; ///< Width change per left/right key press (nm).
     /**
-     * Interactive workflow state:
-     * - @c 1  — place peak 1 center
-     * - @c 11 — set peak 1 width
-     * - @c 2  — place peak 2 center
-     * - @c 22 — set peak 2 width
-     * - @c 0  — finished (two peaks)
-     * - @c 3  — finished (single peak only)
+     * Picking workflow:
+     * 1  -> place peak 1 center, 11 -> set peak 1 width,
+     * 2  -> place peak 2 center, 22 -> set peak 2 width,
+     * 0  -> done (two peaks),    3  -> done (single peak).
      */
-    int selectionState = 1;
+    int state = 1;
 
-    QColor chart_color1 = QColor("#28a5e8"); ///< Pen color for the raw data series.
-    QColor chart_color2 = QColor("#e82862"); ///< Pen color for the smoothed series.
+    QColor chart_color1 = QColor("#28a5e8"); ///< Pen color of the raw series.
+    QColor chart_color2 = QColor("#e82862"); ///< Pen color of the smoothed series.
     QString x_title = "wavelength [nm]";
     QString y_title = "intensity";
-    QString basePath;                        ///< Directory containing spectra and @c data.csv.
+    QString base_path;                       ///< Folder with the spectra and data.csv.
 
-    QLineSeries* fitSeries = nullptr;             ///< Smoothed curve (second series).
-    QChart* currentChart = nullptr;
-    QGraphicsEllipseItem* markerItem = nullptr;   ///< Peak 1 center marker.
-    QGraphicsRectItem* markerItem2 = nullptr;     ///< Peak 2 center marker (square).
+    QLineSeries* smooth_series = nullptr;    ///< Smoothed curve, used for all snapping.
+    QChart* chart = nullptr;
+    QGraphicsEllipseItem* marker1 = nullptr; ///< Peak 1 center marker.
+    QGraphicsRectItem* marker2 = nullptr;    ///< Peak 2 center marker.
 
-    QGraphicsLineItem* p1_lineLeft = nullptr;
-    QGraphicsLineItem* p1_lineRight = nullptr;
-    QGraphicsLineItem* p2_lineLeft = nullptr;
-    QGraphicsLineItem* p2_lineRight = nullptr;
+    QGraphicsLineItem* p1_left = nullptr;
+    QGraphicsLineItem* p1_right = nullptr;
+    QGraphicsLineItem* p2_left = nullptr;
+    QGraphicsLineItem* p2_right = nullptr;
 
-    std::string currentLoadedFile;
+    std::string current_file;
     std::map<std::string, PeakMeasurement> measurements;
-    QString csvFilePath;
+    QString csv_path;
 
-    /** Repositions the vertical width lines for peak @p peakNum (1 or 2). */
-    void updateWidthLines(int peakNum);
+    /// Repositions the width lines of peak @p peak (1 or 2).
+    void update_width_lines(int peak);
 
-    /** Saves the current file's measurement, loads @p item's spectrum, and redraws the chart. */
-    void loadSelectedItem(QListWidgetItem* item);
+    /// Saves the open measurement, then loads and draws @p item.
+    void load_item(QListWidgetItem* item);
 
-    /** Snaps the active marker (per @c selectionState) to the nearest point on @c fitSeries. */
-    void showMarkerAtX(double x);
+    /// Snaps the active marker (chosen by @c state) to the nearest point of the smoothed curve.
+    void snap_marker(double x);
 
-    void loadCSV();
-    void saveCSV();
-    void saveCurrentMeasurement();
-    void restoreMeasurement(const std::string& fileName);
-    void setMarkerToX(QGraphicsItem* marker, double x);
-    void updateInfoPanel();
+    void load_csv();
+    void save_csv();
+    void save_measurement();
+    void restore_measurement(const std::string& file_name);
+    void set_marker(QGraphicsItem* marker, double x);
+    void update_info();
 };
