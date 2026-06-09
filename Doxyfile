@@ -1,0 +1,37 @@
+# Doxygen configuration for PeaksPeaksPeaks
+# Generate the docs with:  doxygen Doxyfile
+# Output lands in:         docs/html/index.html
+
+PROJECT_NAME           = "PeaksPeaksPeaks"
+PROJECT_BRIEF          = "Spectral peak analysis and visualization"
+OUTPUT_DIRECTORY       = docs
+
+# Source files to document
+INPUT                  = . 
+FILE_PATTERNS          = *.cpp *.h
+RECURSIVE              = NO
+
+# Skip build artifacts and generated Qt files
+EXCLUDE_PATTERNS       = */build/* ui_*.h moc_*.cpp *_autogen/*
+
+# Document everything, including private/static members
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+# Nicer output
+JAVADOC_AUTOBRIEF      = YES
+OPTIMIZE_OUTPUT_FOR_C  = NO
+BUILTIN_STL_SUPPORT    = YES
+SOURCE_BROWSER         = YES
+
+# Only HTML, no LaTeX
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+
+# Diagrams need Graphviz 'dot'. Set HAVE_DOT = YES after `brew install graphviz`.
+HAVE_DOT               = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+QUIET                  = YES

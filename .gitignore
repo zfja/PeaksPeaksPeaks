@@ -89,3 +89,6 @@ build/
 CMakeCache.txt
 CMakeFiles/
 .DS_Store
+
+# Doxygen generated output
+docs/

@@ -447,6 +447,24 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
 
         if (key == Qt::Key_Escape) 
         {
+            if (key_event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)) 
+            {
+                if (!current_file.empty()) 
+                {
+                    measurements.erase(current_file); 
+                    save_csv(); 
+                }
+                state = 1;
+                p1_dx = 0.0; p2_dx = 0.0;
+                if (marker1) marker1->setVisible(false);
+                if (marker2) marker2->setVisible(false);
+                if (p1_left) p1_left->setVisible(false);
+                if (p1_right) p1_right->setVisible(false);
+                if (p2_left) p2_left->setVisible(false);
+                if (p2_right) p2_right->setVisible(false);
+                return true;
+            }
+
             if (state == 11) 
             {
                 state = 1; 
@@ -474,28 +492,6 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
             {
                 state = 3;
                 if (marker2) marker2->setVisible(false);
-                return true;
-            }
-        }
-
-        if (key == Qt::Key_Escape) 
-        {
-            
-            if (key_event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)) 
-            {
-                if (!current_file.empty()) 
-                {
-                    measurements.erase(current_file); 
-                    save_csv(); 
-                }
-                state = 1;
-                p1_dx = 0.0; p2_dx = 0.0;
-                if (marker1) marker1->setVisible(false);
-                if (marker2) marker2->setVisible(false);
-                if (p1_left) p1_left->setVisible(false);
-                if (p1_right) p1_right->setVisible(false);
-                if (p2_left) p2_left->setVisible(false);
-                if (p2_right) p2_right->setVisible(false);
                 return true;
             }
         }
@@ -698,7 +694,10 @@ void PeaksPeaksPeaks::set_marker(QGraphicsItem* marker, double x)
     {
         double dist = std::abs(p.x() - x);
         if (dist < best_dist)
-            best_dist = dist; best_point = p;
+        {
+            best_dist = dist;
+            best_point = p;
+        }
     }
     marker->setPos(chart->mapToPosition(best_point, smooth_series));
     marker->setVisible(true);
