@@ -37,9 +37,9 @@
    <widget class="QPushButton" name="settingsButton">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>32</x>
       <y>40</y>
-      <width>61</width>
+      <width>65</width>
       <height>31</height>
      </rect>
     </property>
@@ -47,11 +47,37 @@
      <string>Settings</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="savePngButton">
+    <property name="geometry">
+     <rect>
+      <x>102</x>
+      <y>40</y>
+      <width>47</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="folderButton">
+    <property name="geometry">
+     <rect>
+      <x>640</x>
+      <y>235</y>
+      <width>161</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Choose folder…</string>
+    </property>
+   </widget>
    <widget class="QLabel" name="label_p1_info">
     <property name="geometry">
      <rect>
       <x>650</x>
-      <y>105</y>
+      <y>93</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -63,8 +89,8 @@
    <widget class="QLabel" name="label_p1_width">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>130</y>
+      <x>653</x>
+      <y>120</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -77,7 +103,7 @@
     <property name="geometry">
      <rect>
       <x>650</x>
-      <y>175</y>
+      <y>163</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -89,8 +115,8 @@
    <widget class="QLabel" name="label_p2_width">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>200</y>
+      <x>653</x>
+      <y>190</y>
       <width>111</width>
       <height>21</height>
      </rect>

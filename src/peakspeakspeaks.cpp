@@ -17,6 +17,7 @@
 #include <QColorDialog>
 #include <QLabel>
 #include <QLineEdit>
+#include <QSpinBox>
 #include <QFrame>
 #include <QFont>
 #include <QPen>
@@ -26,8 +27,15 @@
 #include <QEvent>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 #include <QLegendMarker>
 #include <QGraphicsEllipseItem>
+#include <QFileDialog>
+#include <QSettings>
+#include <QDir>
+#include <QApplication>
+#include <QPainter>
+#include <QPixmap>
 
 PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
     : QMainWindow(parent),
@@ -56,23 +64,36 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
     ui->graphView->installEventFilter(this);
     ui->graphView->viewport()->installEventFilter(this);
 
-    FileManager manager;
-    std::string path = manager.get_path();
-    base_path = QString::fromStdString(path);
-
-    csv_path = base_path + "/data.csv";
-    load_csv();
-
-    manager.load(path, -8, -5);
-
-    ui->listWidget->clear();
-
-    for (const auto& f : manager.files)
+    connect(ui->folderButton, &QPushButton::clicked, this, [=]()
     {
-        QListWidgetItem* item = new QListWidgetItem(QString::fromStdString(f.display_name));
-        item->setData(Qt::UserRole, QString::fromStdString(f.file_name));
-        ui->listWidget->addItem(item);
-    }
+        QString dir = QFileDialog::getExistingDirectory(this, "Choose the folder with .txt spectra", base_path);
+        if (!dir.isEmpty())
+        {
+            QSettings settings("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+            settings.setValue("dataFolder", dir);
+            set_data_folder(dir);
+        }
+    });
+
+    connect(ui->savePngButton, &QPushButton::clicked, this, [=]()
+    {
+        QListWidgetItem* current = ui->listWidget->currentItem();
+        if (!ui->graphView->chart() || !current)
+            return;
+
+        QString temperature = current->text();
+
+        QString png_dir = output_dir.isEmpty() ? base_path : output_dir;
+        QDir().mkpath(png_dir);
+        QString suggested = png_dir + "/" + (temperature.isEmpty() ? "chart" : temperature) + ".png";
+        QString path = QFileDialog::getSaveFileName(this, "Save chart as PNG", suggested, "PNG image (*.png)");
+        if (!path.isEmpty())
+        {
+            if (!path.endsWith(".png", Qt::CaseInsensitive))
+                path += ".png";
+            render_chart_png(temperature, path);
+        }
+    });
 
     connect(ui->settingsButton, &QPushButton::clicked, this, [=]()
     {
@@ -91,6 +112,9 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
             if (new_color.isValid())
             {
                 chart_color1 = new_color;
+
+                QSettings store("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+                store.setValue("chartColor1", chart_color1.name());
 
                 if (ui->graphView->chart() && !ui->graphView->chart()->series().isEmpty())
                 {
@@ -114,6 +138,9 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
             if (new_color.isValid())
             {
                 chart_color2 = new_color;
+
+                QSettings store("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+                store.setValue("chartColor2", chart_color2.name());
 
                 if (ui->graphView->chart() && ui->graphView->chart()->series().size() > 1)
                 {
@@ -143,7 +170,55 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         input_y->setText(y_title);
         layout->addWidget(input_y);
 
+        layout->addSpacing(10);
+
+        QLabel* label_window = new QLabel("Smoothing window:", &settings);
+        layout->addWidget(label_window);
+        QSpinBox* input_window = new QSpinBox(&settings);
+        input_window->setRange(3, 151);
+        input_window->setSingleStep(2);
+        input_window->setValue(sg_window);
+        layout->addWidget(input_window);
+
+        QLabel* label_order = new QLabel("Polynomial order:", &settings);
+        layout->addWidget(label_order);
+        QSpinBox* input_order = new QSpinBox(&settings);
+        input_order->setRange(2, 6);
+        input_order->setSingleStep(2);
+        input_order->setValue(sg_order);
+        layout->addWidget(input_order);
+
+        auto apply_smoothing = [this](int window, int order)
+        {
+            sg_window = window;
+            sg_order = order;
+
+            QSettings store("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+            store.setValue("sgWindow", sg_window);
+            store.setValue("sgOrder", sg_order);
+
+            if (QListWidgetItem* current = ui->listWidget->currentItem())
+                load_item(current);
+        };
+
+        connect(input_window, &QSpinBox::valueChanged, this, [=](int value)
+        {
+            apply_smoothing(value, input_order->value());
+        });
+
+        connect(input_order, &QSpinBox::valueChanged, this, [=](int value)
+        {
+            apply_smoothing(input_window->value(), value);
+        });
+
         layout->addSpacing(15);
+
+        QPushButton* save_all_button = new QPushButton("Save all", &settings);
+        layout->addWidget(save_all_button);
+        connect(save_all_button, &QPushButton::clicked, this, [&]()
+        {
+            save_all_png();
+        });
 
         QPushButton* save_button = new QPushButton("Save Changes", &settings);
         save_button->setStyleSheet("font-weight: bold;");
@@ -153,6 +228,10 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         {
             x_title = input_x->text();
             y_title = input_y->text();
+
+            QSettings store("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+            store.setValue("xTitle", x_title);
+            store.setValue("yTitle", y_title);
 
             if (ui->graphView->chart())
             {
@@ -176,10 +255,52 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         load_item(item);
     });
 
+    QSettings settings("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+    sg_window = settings.value("sgWindow", sg_window).toInt();
+    sg_order = settings.value("sgOrder", sg_order).toInt();
+
+    chart_color1 = QColor(settings.value("chartColor1", chart_color1.name()).toString());
+    chart_color2 = QColor(settings.value("chartColor2", chart_color2.name()).toString());
+    x_title = settings.value("xTitle", x_title).toString();
+    y_title = settings.value("yTitle", y_title).toString();
+
+    QString saved = settings.value("dataFolder").toString();
+    QString folder = (!saved.isEmpty() && QDir(saved).exists())
+                       ? saved
+                       : QString::fromStdString(FileManager().get_path());
+    set_data_folder(folder);
+}
+
+void PeaksPeaksPeaks::set_data_folder(const QString& folder)
+{
+    base_path = folder;
+    output_dir = base_path + "/peakspeakspeaks";
+    QDir().mkpath(output_dir);
+    csv_path = output_dir + "/data.csv";
+    current_file.clear();
+
+    load_csv();
+
+    FileManager manager;
+    manager.load(folder.toStdString(), -8, -5);
+
+    ui->listWidget->clear();
+
+    for (const auto& f : manager.files)
+    {
+        QListWidgetItem* item = new QListWidgetItem(QString::fromStdString(f.display_name));
+        item->setData(Qt::UserRole, QString::fromStdString(f.file_name));
+        ui->listWidget->addItem(item);
+    }
+
     if (ui->listWidget->count() > 0)
     {
         ui->listWidget->setCurrentRow(0);
         load_item(ui->listWidget->item(0));
+    }
+    else
+    {
+        ui->graphView->setChart(new QChart());
     }
 }
 
@@ -230,13 +351,14 @@ void PeaksPeaksPeaks::load_item(QListWidgetItem* item)
 
             QValueAxis* axis_y = new QValueAxis();
             axis_y->setTitleText(y_title);
+            axis_y->setTitleFont(axis_x->titleFont());
             axis_y->setTickCount(8);
             axis_y->setGridLineVisible(false);
             new_chart->addAxis(axis_y, Qt::AlignLeft);
             raw->attachAxis(axis_y);
 
             MathEngine math;
-            auto smoothed = math.smooth(loader.data);
+            auto smoothed = math.smooth(loader.data, sg_window, sg_order);
 
             QLineSeries* smooth = new QLineSeries();
             smooth->setName("smooth data");
@@ -386,11 +508,17 @@ void PeaksPeaksPeaks::snap_marker(double x)
         marker1->setPos(scene_pos);
         marker1->setVisible(true);
         marker2->setVisible(false);
+        if (p1_left) p1_left->setVisible(false);
+        if (p1_right) p1_right->setVisible(false);
+        if (p2_left) p2_left->setVisible(false);
+        if (p2_right) p2_right->setVisible(false);
     } 
     else if (state == 2) 
     {
         marker2->setPos(scene_pos);
         marker2->setVisible(true);
+        if (p2_left) p2_left->setVisible(false);
+        if (p2_right) p2_right->setVisible(false);
     }
     update_info();
 }
@@ -412,6 +540,12 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
                 ui->listWidget->setCurrentRow(next_row);
                 load_item(ui->listWidget->item(next_row));
             }
+            return true;
+        }
+
+        if (key == Qt::Key_S && (key_event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)))
+        {
+            ui->savePngButton->click();
             return true;
         }
 
@@ -446,7 +580,7 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
             }
         }
 
-        if (key == Qt::Key_Escape) 
+        if (key == Qt::Key_R) 
         {
             if (key_event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)) 
             {
@@ -463,18 +597,25 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
                 if (p1_right) p1_right->setVisible(false);
                 if (p2_left) p2_left->setVisible(false);
                 if (p2_right) p2_right->setVisible(false);
+                update_info();
                 return true;
             }
 
             if (state == 11) 
             {
                 state = 1; 
+                p1_dx = 0.0;
                 p1_left->setVisible(false); p1_right->setVisible(false);
+                update_info();
                 return true;
             } 
             else if (state == 3) 
             {
                 state = 1; 
+                p1_dx = 0.0;
+                if (p1_left) p1_left->setVisible(false);
+                if (p1_right) p1_right->setVisible(false);
+                update_info();
                 return true;
             } 
             else if (state == 22)
@@ -543,6 +684,8 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
             {
                 if (state == 1) 
                 {
+                    if (!marker1 || !marker1->isVisible())
+                        return true;
                     state = 11; 
                     p1_dx = 0.0;
                     p1_left->setVisible(true); p1_right->setVisible(true);
@@ -557,6 +700,8 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
                 }
                 else if (state == 2) 
                 {
+                    if (!marker2 || !marker2->isVisible())
+                        return true;
                     state = 22; 
                     p2_dx = 0.0;
                     p2_left->setVisible(true); p2_right->setVisible(true);
@@ -571,7 +716,6 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
                 }
                 else if (state == 0 || state == 3) 
                 {
-                    state = 1;
                     return true;
                 }
             }
@@ -616,6 +760,70 @@ void PeaksPeaksPeaks::update_width_lines(int peak)
 
 }
 
+void PeaksPeaksPeaks::render_chart_png(const QString& temperature, const QString& path)
+{
+    if (!ui->graphView->chart())
+        return;
+
+    QString title = temperature + " " + QChar(0x00B0) + "C";
+
+    QPixmap chart_pix = ui->graphView->viewport()->grab();
+    qreal dpr = chart_pix.devicePixelRatio();
+    int title_height = 44;
+
+    QPixmap output(chart_pix.width(), chart_pix.height() + int(title_height * dpr));
+    output.setDevicePixelRatio(dpr);
+    output.fill(Qt::white);
+
+    qreal logical_w = chart_pix.width() / dpr;
+
+    QPainter painter(&output);
+    QFont title_font = painter.font();
+    title_font.setPixelSize(18);
+    title_font.setBold(true);
+    painter.setFont(title_font);
+    painter.setPen(Qt::black);
+    painter.drawText(QRectF(0, 0, logical_w, title_height), Qt::AlignCenter, title);
+    painter.drawPixmap(QPointF(0, title_height), chart_pix);
+    painter.end();
+
+    output.save(path, "PNG");
+}
+
+void PeaksPeaksPeaks::save_all_png()
+{
+    int count = ui->listWidget->count();
+    if (count == 0)
+        return;
+
+    QString png_dir = output_dir.isEmpty() ? base_path : output_dir;
+    QDir().mkpath(png_dir);
+
+    int saved_row = ui->listWidget->currentRow();
+
+    for (int row = 0; row < count; ++row)
+    {
+        QListWidgetItem* item = ui->listWidget->item(row);
+        if (!item)
+            continue;
+
+        ui->listWidget->setCurrentRow(row);
+        load_item(item);
+
+        QApplication::processEvents();
+
+        QString temperature = item->text();
+        QString file = png_dir + "/" + (temperature.isEmpty() ? QString("chart_%1").arg(row) : temperature) + ".png";
+        render_chart_png(temperature, file);
+    }
+
+    if (saved_row >= 0 && saved_row < count)
+    {
+        ui->listWidget->setCurrentRow(saved_row);
+        load_item(ui->listWidget->item(saved_row));
+    }
+}
+
 void PeaksPeaksPeaks::load_csv()
 {
     measurements.clear();
@@ -651,8 +859,39 @@ void PeaksPeaksPeaks::save_csv()
     std::ofstream file(csv_path.toStdString());
     if (!file.is_open()) return;
 
-    for (const auto& pair : measurements) 
-        file << pair.first << "," << pair.second.p1_x << "," << pair.second.p1_width << "," << pair.second.p2_x << "," << pair.second.p2_width << "," << pair.second.last_state << "\n";
+    auto temperature_of = [](const std::string& file_name) -> double
+    {
+        const int start_index = -8;
+        const int end_index = -5;
+        int start = static_cast<int>(file_name.length()) + start_index;
+        int length = end_index - start_index + 1;
+        if (start >= 0 && start + length <= static_cast<int>(file_name.length()))
+        {
+            try { return std::stod(file_name.substr(start, length)); }
+            catch (...) { return 0.0; }
+        }
+        return 0.0;
+    };
+
+    std::vector<std::string> keys;
+    keys.reserve(measurements.size());
+    for (const auto& pair : measurements)
+        keys.push_back(pair.first);
+
+    std::sort(keys.begin(), keys.end(), [&](const std::string& a, const std::string& b)
+    {
+        double ta = temperature_of(a);
+        double tb = temperature_of(b);
+        if (ta != tb)
+            return ta > tb;
+        return a < b;
+    });
+
+    for (const std::string& key : keys)
+    {
+        const PeakMeasurement& m = measurements[key];
+        file << key << "," << m.p1_x << "," << m.p1_width << "," << m.p2_x << "," << m.p2_width << "," << m.last_state << "\n";
+    }
 }
 
 void PeaksPeaksPeaks::save_measurement()

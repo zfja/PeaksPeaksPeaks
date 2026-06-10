@@ -14,16 +14,16 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
 
 set(PROJECT_SOURCES
-        main.cpp
-        peakspeakspeaks.cpp
-        peakspeakspeaks.h
-        peakspeakspeaks.ui
-        FileManager.cpp 
-        FileManager.h
-        SpectrumLoader.cpp 
-        SpectrumLoader.h
-        MathEngine.cpp 
-        MathEngine.h
+        src/main.cpp
+        src/peakspeakspeaks.cpp
+        src/peakspeakspeaks.ui
+        src/FileManager.cpp 
+        src/SpectrumLoader.cpp 
+        src/MathEngine.cpp 
+        include/peakspeakspeaks.h
+        include/FileManager.h
+        include/SpectrumLoader.h
+        include/MathEngine.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -51,6 +51,8 @@ endif()
 
 # TUTAJ TEŻ DODANO 'Charts' na samym końcu linijki
 target_link_libraries(PeaksPeaksPeaks PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
+
+target_include_directories(PeaksPeaksPeaks PRIVATE include)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

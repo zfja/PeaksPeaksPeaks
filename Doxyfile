@@ -7,9 +7,9 @@ PROJECT_BRIEF          = "Spectral peak analysis and visualization"
 OUTPUT_DIRECTORY       = docs
 
 # Source files to document
-INPUT                  = . 
+INPUT                  = src include
 FILE_PATTERNS          = *.cpp *.h
-RECURSIVE              = NO
+RECURSIVE              = YES
 
 # Skip build artifacts and generated Qt files
 EXCLUDE_PATTERNS       = */build/* ui_*.h moc_*.cpp *_autogen/*
