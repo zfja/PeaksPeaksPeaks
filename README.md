@@ -12,7 +12,7 @@ Pre-built packages: **[Releases](https://github.com/zfja/PeaksPeaksPeaks/release
 
 | Platform | File |
 |----------|------|
-| macOS | `PeaksPeaksPeaks-macos.dmg` — open the DMG, drag the app to Applications. If macOS says the app is damaged, run: `xattr -cr /Applications/PeaksPeaksPeaks.app` |
+| macOS | `PeaksPeaksPeaks-macos.dmg` — open the DMG, drag the app to Applications |
 | Windows | `PeaksPeaksPeaks-windows.zip` — unzip and run `PeaksPeaksPeaks.exe` |
 
 Releases are published when a version tag is pushed (e.g. `v0.1.0`). You can also grab the latest build from the **Actions** tab (workflow artifacts).
