@@ -34,8 +34,12 @@ jobs:
           copy build\Release\PeaksPeaksPeaks.exe package\
           windeployqt --release --no-translations package\PeaksPeaksPeaks.exe
 
+      - name: Create ZIP
+        shell: pwsh
+        run: Compress-Archive -Path package\* -DestinationPath PeaksPeaksPeaks-windows.zip
+
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
         with:
           name: PeaksPeaksPeaks-windows
-          path: package
+          path: PeaksPeaksPeaks-windows.zip

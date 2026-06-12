@@ -1,0 +1,43 @@
+name: Build macOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: mac
+          target: desktop
+          arch: clang_64
+          modules: qtcharts
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Bundle Qt libraries
+        run: macdeployqt build/PeaksPeaksPeaks.app -always-overwrite
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "PeaksPeaksPeaks" \
+            -srcfolder build/PeaksPeaksPeaks.app \
+            -ov -format UDZO \
+            PeaksPeaksPeaks-macos.dmg
+
+      - name: Upload macOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PeaksPeaksPeaks-macos
+          path: PeaksPeaksPeaks-macos.dmg

@@ -6,6 +6,17 @@ Qt app for viewing spectrum data from `.txt` files, smoothing with Savitzky–Go
 
 Docs: **https://zfja.github.io/PeaksPeaksPeaks/**
 
+## Download
+
+Pre-built packages: **[Releases](https://github.com/zfja/PeaksPeaksPeaks/releases/latest)**
+
+| Platform | File |
+|----------|------|
+| macOS | `PeaksPeaksPeaks-macos.dmg` — open the DMG, drag the app to Applications |
+| Windows | `PeaksPeaksPeaks-windows.zip` — unzip and run `PeaksPeaksPeaks.exe` |
+
+Releases are published when a version tag is pushed (e.g. `v0.1.0`). You can also grab the latest build from the **Actions** tab (workflow artifacts).
+
 ## Build
 
 Requires CMake (>= 3.16) and Qt 5/6 with **Charts**.
