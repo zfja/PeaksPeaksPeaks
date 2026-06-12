@@ -33,7 +33,7 @@ The executable is in `build/`.
 - **Choose folder…** — pick a folder with `.txt` spectra (remembered between runs)
 - **Up/Down** — switch spectra in the list
 - **Mouse on chart** — place peak center
-- **Click** — confirm center, then set width
+- **Left Mouse Click** — confirm center, then set width
 - **Left/Right** — adjust peak width
 - **Enter** — confirm width
 - **R** — go back one step
@@ -44,6 +44,8 @@ Results go into a `peakspeakspeaks` subfolder inside your data folder:
 
 - `data.csv` — peak measurements
 - PNG exports (single or **Save all** from Settings)
+
+! data is saved to `data.csv` file when the user switches spectra in the list !
 
 ## Settings
 
