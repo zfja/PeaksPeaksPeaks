@@ -36,12 +36,20 @@ jobs:
       - name: Bundle Qt libraries
         run: macdeployqt build/PeaksPeaksPeaks.app -always-overwrite
 
+      - name: Ad-hoc sign app
+        run: |
+          APP="build/PeaksPeaksPeaks.app"
+          find "$APP/Contents/Frameworks" -depth \( -name "*.dylib" -o -name "*.framework" \) -exec codesign --force --sign - {} \;
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --verbose "$APP"
+
       - name: Create DMG
         run: |
           hdiutil create -volname "PeaksPeaksPeaks" \
             -srcfolder build/PeaksPeaksPeaks.app \
             -ov -format UDZO \
             PeaksPeaksPeaks-macos.dmg
+          codesign --force --sign - PeaksPeaksPeaks-macos.dmg
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
