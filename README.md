@@ -2,7 +2,7 @@
 
 [![Doxygen GitHub Pages](https://github.com/zfja/PeaksPeaksPeaks/actions/workflows/doxygen.yml/badge.svg)](https://github.com/zfja/PeaksPeaksPeaks/actions/workflows/doxygen.yml)
 
-Qt app for viewing spectrum data from `.txt` files, smoothing with Savitzky–Golay, and measuring up to two peaks.
+App for viewing spectrum data from `.txt` files, smoothing with Savitzky–Golay, and measuring up to two peaks.
 
 Docs: **https://zfja.github.io/PeaksPeaksPeaks/**
 
