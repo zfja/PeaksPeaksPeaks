@@ -1,8 +1,9 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #pragma once
-#include <vector>
-#include <utility>
 #include <fstream>
 #include <sstream>
+#include <utility>
+#include <vector>
 
 /**
  * @brief Reads (x, y) spectrum points from a text file.

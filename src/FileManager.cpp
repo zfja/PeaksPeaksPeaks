@@ -1,3 +1,4 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #include "FileManager.h"
 
 void FileManager::load(const std::string& directory, int start_index, int end_index) 

@@ -1,3 +1,4 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #include "SpectrumLoader.h"
 #include <algorithm>
 

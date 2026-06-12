@@ -24,7 +24,19 @@ set(PROJECT_SOURCES
         include/FileManager.h
         include/SpectrumLoader.h
         include/MathEngine.h
+        resources/app.qrc
 )
+
+# Application icon (window/taskbar icon comes from app.qrc at runtime).
+# macOS: bundle icon (.icns). Windows: executable icon via .rc (.ico).
+set(APP_ICON_MACOS ${CMAKE_CURRENT_SOURCE_DIR}/resources/AppIcon.icns)
+set_source_files_properties(${APP_ICON_MACOS} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
+if(APPLE)
+    list(APPEND PROJECT_SOURCES ${APP_ICON_MACOS})
+elseif(WIN32)
+    list(APPEND PROJECT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/resources/app.rc)
+endif()
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(PeaksPeaksPeaks
@@ -64,6 +76,7 @@ set_target_properties(PeaksPeaksPeaks PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE_ICON_FILE AppIcon.icns
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )

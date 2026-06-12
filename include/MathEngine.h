@@ -1,8 +1,9 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #pragma once
-#include <vector>
-#include <utility>
 #include <future>
 #include <thread>
+#include <utility>
+#include <vector>
 
 /**
  * @brief Savitzky–Golay smoothing of spectral (x, y) data.

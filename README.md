@@ -78,3 +78,7 @@ Nagłówki (`.h`) są w katalogu `include/`, a pliki źródłowe (`.cpp`, `.ui`)
 | `MathEngine`      | wygładzanie Savitzky'ego-Golaya |
 | `FileManager`     | skanowanie katalogu i sortowanie plików |
 | `src/main.cpp`    | punkt wejścia aplikacji |
+
+## Autor
+
+Zofia Tryznowska ([@zfja](https://github.com/zfja))

@@ -1,10 +1,12 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #pragma once
-#include <string>
-#include <vector>
-#include <filesystem>
-#include <algorithm>
 #include <QApplication>
 #include <QDir>
+
+#include <algorithm>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 /**
  * @brief One spectrum file discovered in the data directory.

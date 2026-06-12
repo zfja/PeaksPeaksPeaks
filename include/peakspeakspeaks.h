@@ -1,18 +1,20 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #pragma once
 
-#include <QMainWindow>
-#include <QColor>
-#include <QListWidgetItem>
-#include <QKeyEvent>
-#include <QEvent>
 #include <QChart>
+#include <QColor>
+#include <QEvent>
+#include <QKeyEvent>
 #include <QLineSeries>
+#include <QListWidgetItem>
+#include <QMainWindow>
 #include <QScatterSeries>
 #include <QValueAxis>
-#include <map>
-#include <string>
+
 #include <fstream>
+#include <map>
 #include <sstream>
+#include <string>
 
 /**
  * @brief Saved peak positions and widths for one spectrum file.
@@ -37,6 +39,8 @@ QT_END_NAMESPACE
  * The user picks peak centers with the mouse and sets their widths with clicks
  * or arrow keys. Measurements are stored in @c data.csv inside the @c peakspeakspeaks
  * subfolder of the selected data directory, and charts can be exported to PNG.
+ *
+ * @author Zofia Tryznowska
  */
 class PeaksPeaksPeaks : public QMainWindow
 {

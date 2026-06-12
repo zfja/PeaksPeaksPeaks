@@ -1,39 +1,41 @@
+// PeaksPeaksPeaks — Copyright (c) 2026 Zofia Tryznowska
 #include "peakspeakspeaks.h"
 #include "./ui_peakspeakspeaks.h"
 #include "FileManager.h"
 #include "SpectrumLoader.h"
 #include "MathEngine.h"
 
-#include <iostream>
+#include <QApplication>
+#include <QChart>
+#include <QChartView>
+#include <QColorDialog>
+#include <QDialog>
+#include <QDir>
+#include <QEvent>
+#include <QFileDialog>
+#include <QFont>
+#include <QFrame>
+#include <QGraphicsEllipseItem>
+#include <QLabel>
+#include <QLegendMarker>
+#include <QLineEdit>
+#include <QLineSeries>
 #include <QListWidget>
 #include <QListWidgetItem>
-#include <QChart>
-#include <QLineSeries>
-#include <QValueAxis>
-#include <QChartView>
-#include <QDialog>
-#include <QVBoxLayout>
-#include <QPushButton>
-#include <QColorDialog>
-#include <QLabel>
-#include <QLineEdit>
-#include <QSpinBox>
-#include <QFrame>
-#include <QFont>
-#include <QPen>
 #include <QMargins>
-#include <QScatterSeries>
 #include <QMouseEvent>
-#include <QEvent>
-#include <cmath>
-#include <algorithm>
-#include <vector>
-#include <QLegendMarker>
-#include <QGraphicsEllipseItem>
-#include <QFileDialog>
+#include <QPen>
+#include <QPushButton>
+#include <QScatterSeries>
 #include <QSettings>
-#include <QDir>
-#include <QApplication>
+#include <QSpinBox>
+#include <QVBoxLayout>
+#include <QValueAxis>
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <vector>
 #include <QPainter>
 #include <QPixmap>
 
@@ -43,13 +45,60 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // The layout uses absolute positions, so lock the window to its design size
+    // to keep everything aligned instead of letting widgets drift on resize.
+    setFixedSize(size());
+
     this->setStyleSheet(R"(
-        QMainWindow { background-color: #2b2b2b; }
-        QListWidget { background-color: #3c3f41; color: #e0e0e0; border: 1px solid #555555; padding: 5px; font-size: 14px; }
-        QListWidget::item { padding: 2px; }
-        QListWidget::item:selected { background-color: #2980b9; color: #ffffff; border-radius: 3px; }
-        QListWidget::item:hover { background-color: #4f5356; }
-        #graphView { background-color: #ffffff; border: 2px solid #555555; }
+        QMainWindow, QDialog { background-color: #1e1f22; }
+
+        QWidget { color: #e6e8eb; font-size: 14px; }
+
+        QListWidget {
+            background-color: #26282c;
+            color: #e6e8eb;
+            border: 1px solid #34373c;
+            border-radius: 8px;
+            padding: 6px;
+            outline: 0;
+        }
+        QListWidget::item { padding: 6px 8px; border-radius: 6px; }
+        QListWidget::item:hover { background-color: #313438; }
+        QListWidget::item:selected { background-color: #6d7cff; color: #ffffff; }
+
+        QPushButton {
+            background-color: #383b41;
+            color: #f0f2f4;
+            border: 1px solid #565a61;
+            border-radius: 4px;
+            padding: 7px 14px;
+        }
+        QPushButton:hover { background-color: #43474e; border-color: #6d7cff; }
+        QPushButton:pressed { background-color: #6d7cff; color: #ffffff; border-color: #6d7cff; }
+        QPushButton:disabled { color: #6b7177; background-color: #2a2c30; border-color: #34373c; }
+
+        QLabel { color: #e6e8eb; background: transparent; }
+
+        QLineEdit, QSpinBox {
+            background-color: #26282c;
+            color: #e6e8eb;
+            border: 1px solid #3a3d42;
+            border-radius: 6px;
+            padding: 5px 8px;
+            selection-background-color: #6d7cff;
+        }
+        QLineEdit:focus, QSpinBox:focus { border-color: #6d7cff; }
+        QSpinBox::up-button, QSpinBox::down-button {
+            width: 16px; background-color: #2f3237; border: none;
+        }
+        QSpinBox::up-button:hover, QSpinBox::down-button:hover { background-color: #3a3d42; }
+
+        QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; }
+        QScrollBar::handle:vertical { background: #3a3d42; border-radius: 5px; min-height: 24px; }
+        QScrollBar::handle:vertical:hover { background: #4a4d53; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+
+        #graphView { background-color: #ffffff; border: 1px solid #34373c; border-radius: 8px; }
     )");
 
     ui->listWidget->setFocusPolicy(Qt::StrongFocus);
@@ -102,6 +151,15 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         settings.setMinimumWidth(250);
 
         QVBoxLayout* layout = new QVBoxLayout(&settings);
+
+        QPushButton* save_all_button = new QPushButton("Save all", &settings);
+        layout->addWidget(save_all_button);
+        connect(save_all_button, &QPushButton::clicked, this, [&]()
+        {
+            save_all_png();
+        });
+
+        layout->addSpacing(15);
 
         QPushButton* chose_color1 = new QPushButton("Change marker 1 colour", &settings);
         layout->addWidget(chose_color1);
@@ -212,13 +270,6 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         });
 
         layout->addSpacing(15);
-
-        QPushButton* save_all_button = new QPushButton("Save all", &settings);
-        layout->addWidget(save_all_button);
-        connect(save_all_button, &QPushButton::clicked, this, [&]()
-        {
-            save_all_png();
-        });
 
         QPushButton* save_button = new QPushButton("Save Changes", &settings);
         save_button->setStyleSheet("font-weight: bold;");
