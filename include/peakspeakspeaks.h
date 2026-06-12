@@ -8,7 +8,9 @@
 #include <QLineSeries>
 #include <QListWidgetItem>
 #include <QMainWindow>
+#include <QResizeEvent>
 #include <QScatterSeries>
+#include <QShowEvent>
 #include <QValueAxis>
 
 #include <fstream>
@@ -28,6 +30,7 @@ struct PeakMeasurement {
 };
 
 QT_BEGIN_NAMESPACE
+class QTimer;
 namespace Ui {
 class PeaksPeaksPeaks;
 }
@@ -60,12 +63,16 @@ protected:
      * and @c Ctrl/Cmd+S exports the current chart to PNG (same as the Save PNG button).
      */
     bool eventFilter(QObject *obj, QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void showEvent(QShowEvent *event) override;
 
 private:
     Ui::PeaksPeaksPeaks *ui;
 
     double p1_dx = 0.0;      ///< Half-width of peak 1 while editing.
     double p2_dx = 0.0;      ///< Half-width of peak 2 while editing.
+    double p1_x = 0.0;       ///< Peak 1 center wavelength (nm); source of truth for overlays.
+    double p2_x = 0.0;       ///< Peak 2 center wavelength (nm).
     double arrow_step = 0.7; ///< Width change per left/right key press (nm).
 
     int sg_window = 51;      ///< Savitzky–Golay window length (points), set in Settings.
@@ -128,4 +135,16 @@ private:
     void restore_measurement(const std::string& file_name);
     void set_marker(QGraphicsItem* marker, double x);
     void update_info();
+
+    void capture_design_layout();
+    void apply_scaled_layout();
+    void schedule_peak_overlay_refresh();
+    void refresh_peak_overlays_from_data();
+    void update_chart_legend_layout();
+
+    QTimer* overlay_refresh_timer_ = nullptr;
+    QSize design_central_size_;
+    QHash<QWidget*, QRect> design_geometries_;
+    int base_font_size_ = 14;
+    QString base_stylesheet_;
 };

@@ -26,9 +26,12 @@
 #include <QMouseEvent>
 #include <QPen>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QScatterSeries>
 #include <QSettings>
+#include <QShowEvent>
 #include <QSpinBox>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QValueAxis>
 
@@ -44,10 +47,6 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
       ui(new Ui::PeaksPeaksPeaks)
 {
     ui->setupUi(this);
-
-    // The layout uses absolute positions, so lock the window to its design size
-    // to keep everything aligned instead of letting widgets drift on resize.
-    setFixedSize(size());
 
     this->setStyleSheet(R"(
         QMainWindow, QDialog { background-color: #1e1f22; }
@@ -100,6 +99,13 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
         #graphView { background-color: #ffffff; border: 1px solid #34373c; border-radius: 8px; }
     )");
+    
+    base_stylesheet_ = styleSheet();
+
+    overlay_refresh_timer_ = new QTimer(this);
+    overlay_refresh_timer_->setSingleShot(true);
+    overlay_refresh_timer_->setInterval(16);
+    connect(overlay_refresh_timer_, &QTimer::timeout, this, &PeaksPeaksPeaks::refresh_peak_overlays_from_data);
 
     ui->listWidget->setFocusPolicy(Qt::StrongFocus);
     ui->listWidget->installEventFilter(this);
@@ -436,7 +442,7 @@ void PeaksPeaksPeaks::load_item(QListWidgetItem* item)
 
             new_chart->legend()->setMinimumSize(120, 70);
             new_chart->legend()->resize(120, 60);
-            new_chart->legend()->setPos(440, 20);
+            update_chart_legend_layout();
 
             ui->graphView->setChart(new_chart);
             ui->graphView->setRenderHint(QPainter::Antialiasing);
@@ -457,6 +463,8 @@ void PeaksPeaksPeaks::load_item(QListWidgetItem* item)
             state = 1;
             p1_dx = 0.0;
             p2_dx = 0.0;
+            p1_x = 0.0;
+            p2_x = 0.0;
 
             marker1 = new QGraphicsEllipseItem();
             marker1->setRect(-4, -4, 7, 7);
@@ -519,6 +527,115 @@ void PeaksPeaksPeaks::load_item(QListWidgetItem* item)
     item->setForeground(is_broken ? QColor("#b61818") : Qt::white);
 }
 
+void PeaksPeaksPeaks::capture_design_layout()
+{
+    design_central_size_ = ui->centralwidget->size();
+    design_geometries_.clear();
+
+    for (QObject* child : ui->centralwidget->children())
+    {
+        if (QWidget* widget = qobject_cast<QWidget*>(child))
+            design_geometries_.insert(widget, widget->geometry());
+    }
+}
+
+void PeaksPeaksPeaks::update_chart_legend_layout()
+{
+    if (!chart || !chart->legend() || !design_geometries_.contains(ui->graphView))
+        return;
+
+    const QRect design_graph = design_geometries_.value(ui->graphView);
+    if (design_graph.width() <= 0 || design_graph.height() <= 0)
+        return;
+
+    const double gx = static_cast<double>(ui->graphView->width()) / design_graph.width();
+    const double gy = static_cast<double>(ui->graphView->height()) / design_graph.height();
+    chart->legend()->setPos(440.0 * gx, 20.0 * gy);
+}
+
+void PeaksPeaksPeaks::schedule_peak_overlay_refresh()
+{
+    if (overlay_refresh_timer_)
+        overlay_refresh_timer_->start();
+}
+
+void PeaksPeaksPeaks::refresh_peak_overlays_from_data()
+{
+    if (!chart || !smooth_series)
+        return;
+
+    if (marker1 && marker1->isVisible())
+        set_marker(marker1, p1_x);
+
+    if (marker2 && marker2->isVisible())
+        set_marker(marker2, p2_x);
+
+    if (p1_left && p1_left->isVisible())
+        update_width_lines(1);
+
+    if (p2_left && p2_left->isVisible())
+        update_width_lines(2);
+
+    update_info();
+}
+
+void PeaksPeaksPeaks::apply_scaled_layout()
+{
+    if (design_central_size_.isEmpty() || design_geometries_.isEmpty())
+        return;
+
+    const QSize current = ui->centralwidget->size();
+    const double sx = static_cast<double>(current.width()) / design_central_size_.width();
+    const double sy = static_cast<double>(current.height()) / design_central_size_.height();
+
+    for (auto it = design_geometries_.constBegin(); it != design_geometries_.constEnd(); ++it)
+    {
+        QWidget* widget = it.key();
+        const QRect& design = it.value();
+        widget->setGeometry(
+            qRound(design.x() * sx),
+            qRound(design.y() * sy),
+            qMax(1, qRound(design.width() * sx)),
+            qMax(1, qRound(design.height() * sy)));
+    }
+
+    const int font_size = qMax(8, qRound(base_font_size_ * std::min(sx, sy)));
+    QString scaled_stylesheet = base_stylesheet_;
+    scaled_stylesheet.replace(
+        QString("font-size: %1px").arg(base_font_size_),
+        QString("font-size: %1px").arg(font_size));
+    setStyleSheet(scaled_stylesheet);
+
+    update_chart_legend_layout();
+
+    if (chart && smooth_series
+        && ((marker1 && marker1->isVisible()) || (marker2 && marker2->isVisible())
+            || (p1_left && p1_left->isVisible()) || (p2_left && p2_left->isVisible())))
+    {
+        schedule_peak_overlay_refresh();
+    }
+}
+
+void PeaksPeaksPeaks::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    apply_scaled_layout();
+}
+
+void PeaksPeaksPeaks::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+
+    if (design_geometries_.isEmpty())
+    {
+        capture_design_layout();
+        const int chrome = ui->menubar->height() + ui->statusbar->height();
+        setMinimumSize(QSize(design_central_size_.width() / 2,
+                             design_central_size_.height() / 2 + chrome));
+        apply_scaled_layout();
+    }
+}
+
 PeaksPeaksPeaks::~PeaksPeaksPeaks()
 {
     delete marker1;
@@ -556,6 +673,7 @@ void PeaksPeaksPeaks::snap_marker(double x)
     
     if (state == 1) 
     {
+        p1_x = best_point.x();
         marker1->setPos(scene_pos);
         marker1->setVisible(true);
         marker2->setVisible(false);
@@ -566,6 +684,7 @@ void PeaksPeaksPeaks::snap_marker(double x)
     } 
     else if (state == 2) 
     {
+        p2_x = best_point.x();
         marker2->setPos(scene_pos);
         marker2->setVisible(true);
         if (p2_left) p2_left->setVisible(false);
@@ -642,6 +761,7 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
                 }
                 state = 1;
                 p1_dx = 0.0; p2_dx = 0.0;
+                p1_x = 0.0; p2_x = 0.0;
                 if (marker1) marker1->setVisible(false);
                 if (marker2) marker2->setVisible(false);
                 if (p1_left) p1_left->setVisible(false);
@@ -710,8 +830,8 @@ bool PeaksPeaksPeaks::eventFilter(QObject *obj, QEvent *event)
                 
                 if (center) 
                 {
-                    QPointF center_val = chart->mapToValue(center->pos(), smooth_series);
-                    double delta = std::abs(value_pos.x() - center_val.x());
+                    double center_x = (state == 11) ? p1_x : p2_x;
+                    double delta = std::abs(value_pos.x() - center_x);
 
                     if (state == 11) 
                     {
@@ -786,11 +906,11 @@ void PeaksPeaksPeaks::update_width_lines(int peak)
     if (!center || !center->isVisible()) 
         return;
 
-    QPointF center_val = chart->mapToValue(center->pos(), smooth_series);
-    double delta = (peak == 1) ? p1_dx : p2_dx;
+    const double center_x = (peak == 1) ? p1_x : p2_x;
+    const double delta = (peak == 1) ? p1_dx : p2_dx;
 
-    QPointF left_val(center_val.x() - delta, 0);
-    QPointF right_val(center_val.x() + delta, 0);
+    QPointF left_val(center_x - delta, 0);
+    QPointF right_val(center_x + delta, 0);
 
     double left_x = chart->mapToPosition(left_val, smooth_series).x();
     double right_x = chart->mapToPosition(right_val, smooth_series).x();
@@ -951,12 +1071,12 @@ void PeaksPeaksPeaks::save_measurement()
     {
         PeakMeasurement m;
         m.last_state = state;
-        m.p1_x = chart->mapToValue(marker1->pos(), smooth_series).x();
+        m.p1_x = p1_x;
         m.p1_width = p1_dx;
         
         if (state == 0 && marker2) 
         {
-            m.p2_x = chart->mapToValue(marker2->pos(), smooth_series).x();
+            m.p2_x = p2_x;
             m.p2_width = p2_dx;
         } 
         else 
@@ -992,6 +1112,11 @@ void PeaksPeaksPeaks::set_marker(QGraphicsItem* marker, double x)
     }
     marker->setPos(chart->mapToPosition(best_point, smooth_series));
     marker->setVisible(true);
+
+    if (marker == marker1)
+        p1_x = best_point.x();
+    else if (marker == marker2)
+        p2_x = best_point.x();
 }
 
 void PeaksPeaksPeaks::restore_measurement(const std::string& file_name)
@@ -1028,6 +1153,8 @@ void PeaksPeaksPeaks::restore_measurement(const std::string& file_name)
         state = 1; 
         p1_dx = 0.0;
         p2_dx = 0.0;
+        p1_x = 0.0;
+        p2_x = 0.0;
     }
     update_info();
 }
@@ -1037,25 +1164,25 @@ void PeaksPeaksPeaks::update_info()
     double x1 = 0.0, w1 = 0.0;
     double x2 = 0.0, w2 = 0.0;
 
-    if (state != 1 && chart && smooth_series && marker1) 
+    if (state != 1 && marker1) 
     {
-        x1 = chart->mapToValue(marker1->pos(), smooth_series).x();
+        x1 = p1_x;
         w1 = p1_dx * 2.0;
     } 
     else if (state == 1 && marker1 && marker1->isVisible()) 
     {
-        x1 = chart->mapToValue(marker1->pos(), smooth_series).x();
+        x1 = p1_x;
         w1 = 0.0;
     }
 
-    if ((state == 0 || state == 22) && chart && smooth_series && marker2) 
+    if ((state == 0 || state == 22) && marker2) 
     {
-        x2 = chart->mapToValue(marker2->pos(), smooth_series).x();
+        x2 = p2_x;
         w2 = p2_dx * 2.0;
     } 
     else if (state == 2 && marker2 && marker2->isVisible()) 
     {
-        x2 = chart->mapToValue(marker2->pos(), smooth_series).x();
+        x2 = p2_x;
         w2 = 0.0;
     }
 
