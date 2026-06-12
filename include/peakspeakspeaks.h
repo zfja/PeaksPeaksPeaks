@@ -89,6 +89,7 @@ private:
     QColor chart_color2 = QColor("#e82862"); ///< Pen color of the smoothed series.
     QString x_title = "wavelength [nm]";
     QString y_title = "intensity";
+    QString png_name_prefix;                 ///< Prepended to every exported PNG file name.
     QString base_path;                       ///< Folder with the spectra (.txt files).
     QString output_dir;                      ///< Output subfolder ("peakspeakspeaks") for data.csv and PNG exports.
 
@@ -135,6 +136,7 @@ private:
     void restore_measurement(const std::string& file_name);
     void set_marker(QGraphicsItem* marker, double x);
     void update_info();
+    QString prefixed_png_name(const QString& name) const;
 
     void capture_design_layout();
     void apply_scaled_layout();

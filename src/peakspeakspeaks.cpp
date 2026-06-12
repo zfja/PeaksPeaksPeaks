@@ -140,7 +140,8 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
 
         QString png_dir = output_dir.isEmpty() ? base_path : output_dir;
         QDir().mkpath(png_dir);
-        QString suggested = png_dir + "/" + (temperature.isEmpty() ? "chart" : temperature) + ".png";
+        QString base = temperature.isEmpty() ? "chart" : temperature;
+        QString suggested = png_dir + "/" + prefixed_png_name(base) + ".png";
         QString path = QFileDialog::getSaveFileName(this, "Save chart as PNG", suggested, "PNG image (*.png)");
         if (!path.isEmpty())
         {
@@ -157,6 +158,19 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
         settings.setMinimumWidth(250);
 
         QVBoxLayout* layout = new QVBoxLayout(&settings);
+
+        QLabel* label_save_as = new QLabel("Save as:", &settings);
+        layout->addWidget(label_save_as);
+        QLineEdit* input_save_as = new QLineEdit(&settings);
+        input_save_as->setText(png_name_prefix);
+        input_save_as->setPlaceholderText("e.g. 7%_8_9_");
+        layout->addWidget(input_save_as);
+        connect(input_save_as, &QLineEdit::textChanged, this, [=](const QString& text)
+        {
+            png_name_prefix = text;
+            QSettings store("PeaksPeaksPeaks", "PeaksPeaksPeaks");
+            store.setValue("pngNamePrefix", png_name_prefix);
+        });
 
         QPushButton* save_all_button = new QPushButton("Save all", &settings);
         layout->addWidget(save_all_button);
@@ -320,6 +334,7 @@ PeaksPeaksPeaks::PeaksPeaksPeaks(QWidget *parent)
     chart_color2 = QColor(settings.value("chartColor2", chart_color2.name()).toString());
     x_title = settings.value("xTitle", x_title).toString();
     y_title = settings.value("yTitle", y_title).toString();
+    png_name_prefix = settings.value("pngNamePrefix").toString();
 
     QString saved = settings.value("dataFolder").toString();
     QString folder = (!saved.isEmpty() && QDir(saved).exists())
@@ -928,7 +943,11 @@ void PeaksPeaksPeaks::update_width_lines(int peak)
         p2_right->setLine(right_x, area.top(), right_x, area.bottom());
     }
     update_info();
+}
 
+QString PeaksPeaksPeaks::prefixed_png_name(const QString& name) const
+{
+    return png_name_prefix + name;
 }
 
 void PeaksPeaksPeaks::render_chart_png(const QString& temperature, const QString& path)
@@ -984,7 +1003,8 @@ void PeaksPeaksPeaks::save_all_png()
         QApplication::processEvents();
 
         QString temperature = item->text();
-        QString file = png_dir + "/" + (temperature.isEmpty() ? QString("chart_%1").arg(row) : temperature) + ".png";
+        QString base = temperature.isEmpty() ? QString("chart_%1").arg(row) : temperature;
+        QString file = png_dir + "/" + prefixed_png_name(base) + ".png";
         render_chart_png(temperature, file);
     }
 
